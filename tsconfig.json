@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "target": "ESNext",
+    "sourceMap": true,
+    "lib": [
+      "ES2021.String"
+    ],
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

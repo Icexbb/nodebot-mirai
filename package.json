@@ -1,0 +1,24 @@
+{
+  "name": "nodebot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "compile": "tsc -t es2022",
+    "dev": "tsc -t es2022 && node index"
+  },
+  "author": "",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "typescript": "^5.2.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.8",
+    "tsc": "^2.0.4"
+  }
+}
