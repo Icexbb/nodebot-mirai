@@ -102,7 +102,6 @@ dist
 
 # vuepress v2.x temp and cache directory
 .temp
-.cache
 
 # Docusaurus cache and generated files
 .docusaurus
@@ -130,9 +129,12 @@ dist
 .pnp.*
 
 .idea
+.vscode
 
 index.js
 index.js.map
 
 src/**/*.js
 src/**/*.js.map
+
+test.js

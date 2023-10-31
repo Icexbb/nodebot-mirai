@@ -151,6 +151,6 @@ class StrangerSyncMessageEvent extends SyncMessageEvent {
         this.subject = event['subject']
     }
 }
-
+export {GroupInfo,GroupPermission}
 export {GroupMessageEvent,FriendMessageEvent,StrangerMessageEvent,TempMessageEvent,OtherClientMessageEvent}
 export {GroupSyncMessageEvent,FriendSyncMessageEvent,TempSyncMessageEvent,StrangerSyncMessageEvent}
