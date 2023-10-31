@@ -2,8 +2,7 @@ import { MessageChain } from "./message/segment.js";
 import * as events from "events";
 import * as ws from "ws";
 import { Hash } from "./utils.js";
-import { GroupInfo, GroupPermission } from "./events/message.js";
-
+import { GroupPermission, GroupInfo } from "./class.js"
 enum ApiStatus {
     Normal = 0,
     WrongVerifyKey = 1,
@@ -183,7 +182,7 @@ interface ApiCallerInterface extends
     ConsoleCommandApiCaller {
 }
 
-class WsApiCaller implements ApiCallerInterface {
+export class WsApiCaller implements ApiCallerInterface {
     connection: ws.WebSocket
     sessionKey: string
     selfId: number

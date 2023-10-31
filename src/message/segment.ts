@@ -5,7 +5,7 @@ abstract class MessageSegment {
         this.type = segment['type']
     }
 
-    abstract ToLog(): string
+    abstract toLog(): string
 }
 
 interface EncodeAbleMessage {
@@ -32,7 +32,7 @@ class Source extends MessageSegment {
         this.time = segment['time']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return "";
     }
 }
@@ -53,7 +53,7 @@ class Quote extends MessageSegment {
         this.origin = segment['origin']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `>`;
     }
 }
@@ -72,7 +72,7 @@ class At extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:at:${this.target}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `${this.display}(${this.target})`;
     }
 }
@@ -86,7 +86,7 @@ class AtAll extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:atall]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `@全体成员`;
     }
 }
@@ -105,7 +105,7 @@ class Face extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:face:${this.faceId}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[表情:${this.name}]`;
     }
 
@@ -123,7 +123,7 @@ class Plain extends MessageSegment implements EncodeAbleMessage {
         return this.text;
     }
 
-    ToLog(): string {
+    toLog(): string {
         return this.text;
     }
 }
@@ -146,7 +146,7 @@ class Image extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:image:${escapeMirai(this.imageId)}]`;
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[图片:${this.url}]`;
     }
 
@@ -170,7 +170,7 @@ class FlashImage extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:flash:${escapeMirai(this.imageId)}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[闪照:${this.url}]`;
     }
 }
@@ -191,7 +191,7 @@ class Voice extends MessageSegment {
         this.length = segment['length']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[语音:${this.url}]`;
     }
 }
@@ -204,7 +204,7 @@ class Xml extends MessageSegment {
         this.xml = segment['xml']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[XML]`;
     }//TODO
 }
@@ -217,7 +217,7 @@ class Json extends MessageSegment {
         this.json = segment['json']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[JSON]`;
     }
 }
@@ -234,7 +234,7 @@ class App extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:app:${escapeMirai(this.content)}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[APP]`;
     }
 }
@@ -260,7 +260,7 @@ class Poke extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:poke]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[戳]`;
     }
 }
@@ -277,7 +277,7 @@ class Dice extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:dice:${this.value}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[骰子:${this.value}]`;
     }
 }
@@ -292,7 +292,7 @@ class MarketFace extends MessageSegment {
         this.name = segment['name']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[大表情:${this.name}]`;
     }
 }
@@ -383,7 +383,7 @@ class MusicShare extends MessageSegment implements EncodeAbleMessage {
         ${escapeMirai(this.jumpUrl)},${escapeMirai(this.pictureUrl)},${escapeMirai(this.brief)}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[音乐:${this.title}]`;
     }
 }
@@ -420,7 +420,7 @@ class ForwardMessage extends MessageSegment {
         this.nodeList = segment['nodeList']
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[转发消息]`;
     }
 
@@ -444,7 +444,7 @@ class File extends MessageSegment implements EncodeAbleMessage {
         return `[mirai:file:${escapeMirai(this.id)},${escapeMirai(this.internalId)},${escapeMirai(this.name)},${this.size}]`
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[文件:${this.name}]`;
     }
 }
@@ -458,7 +458,7 @@ class MiraiCode extends MessageSegment {
 
     }
 
-    ToLog(): string {
+    toLog(): string {
         return `[Mirai:${this.code}]`;
     }
 }

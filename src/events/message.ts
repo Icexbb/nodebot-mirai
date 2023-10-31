@@ -1,72 +1,38 @@
-import {BaseEvent} from "./base.js";
-import {MessageSegment} from "../message/segment.js";
-import {GetMessage} from "../message/message.js"
 
-class FriendSender {
-    id: number
-    nickname: string
-    remark: string
-}
+import { FriendInfo, GroupInfo, GroupMemberInfo, ClientInfo } from "../class.js";
+import { MessageEvent } from "./base.js";
 
+type FriendSender = FriendInfo
 type StrangerSender = FriendSender
-
-enum GroupPermission {
-    MEMBER = 'MEMBER',
-    ADMIN = 'ADMIN',
-    OWNER = 'OWNER',
-}
-
-class GroupInfo {
-    id: number
-    name: string
-    permission: GroupPermission
-}
-
-class GroupSender {
-    id: number
-    memberName: string
-    specialTitle: string
-    permission: GroupPermission
-    joinTimestamp: number
-    lastSpeakTimestamp: number
-    muteTimeRemaining: number
-    group: GroupInfo
-}
-
+type GroupSender = GroupMemberInfo
 type TempSender = GroupSender
-
-class OtherClientSender {
-    id: number
-    platform: string
-}
+type OtherClientSender = ClientInfo
 
 type Sender = FriendSender | StrangerSender | GroupSender | TempSender | OtherClientSender
 
-class MessageEvent extends BaseEvent {
-    messageChain: MessageSegment[]
-
-    constructor(event: object) {
-        super(event);
-        this.messageChain = GetMessage(event['messageChain'])
-    }
-}
-
-
 class FriendMessageEvent extends MessageEvent {
+
     sender: FriendSender
 
     constructor(event: object) {
         super(event);
         this.sender = event['sender']
     }
+    toLog(): string {
+        return `Friend Message [${this.sender.nickname}(${this.sender.id})]: ${this.messageChain.map((seg) => seg.toLog()).join('')}`
+    }
 }
 
 class GroupMessageEvent extends MessageEvent {
+
     sender: GroupSender
 
     constructor(event: object) {
         super(event);
         this.sender = event['sender']
+    }
+    toLog(): string {
+        return `Group Message [${this.sender.memberName}(${this.sender.id}) in ${this.sender.group.name}(${this.sender.group.id})]: ${this.messageChain.map((seg) => seg.toLog()).join('')}`
     }
 }
 
@@ -77,43 +43,42 @@ class StrangerMessageEvent extends MessageEvent {
         super(event);
         this.sender = event['sender']
     }
+    toLog(): string {
+        return `Stranger Message [${this.sender.nickname}(${this.sender.id})]: ${this.messageChain.map((seg) => seg.toLog()).join('')}`
+    }
 }
 
 class TempMessageEvent extends MessageEvent {
-    sender: GroupSender
+    sender: TempSender
 
     constructor(event: object) {
         super(event);
         this.sender = event['sender']
+    }
+    toLog(): string {
+        return `Temp Message [${this.sender.memberName}(${this.sender.id}) in ${this.sender.group.name}(${this.sender.group.id})]: ${this.messageChain.map((seg) => seg.toLog()).join('')}`
     }
 }
 
 class OtherClientMessageEvent extends MessageEvent {
-    sender: GroupSender
+    sender: OtherClientSender
 
     constructor(event: object) {
         super(event);
         this.sender = event['sender']
     }
+    toLog(): string {
+        return `Other Client Message [${this.sender.platform}]: ${this.messageChain.map((seg) => seg.toLog()).join('')}`
+    }
 }
 
-class GroupSubject {
-    id: number
-    name: string
-    permission: GroupPermission
-}
-
+type GroupSubject = GroupInfo
 type FriendSubject = FriendSender
 type TempSubject = GroupSender
 type StrangerSubject = FriendSubject
 
-class SyncMessageEvent extends BaseEvent {
-    messageChain: MessageSegment[]
-
-    constructor(event: object) {
-        super(event);
-        this.messageChain = event['messageChain']
-    }
+abstract class SyncMessageEvent extends MessageEvent {
+    constructor(event: object) { super(event); }
 }
 
 class FriendSyncMessageEvent extends SyncMessageEvent {
@@ -122,6 +87,9 @@ class FriendSyncMessageEvent extends SyncMessageEvent {
     constructor(event: object) {
         super(event);
         this.subject = event['subject']
+    }
+    toLog(): string {
+        return `Friend Message Sync [${this.subject.nickname}(${this.subject.id})]=> ${this.messageChain.map((seg) => seg.toLog()).join('')}`
     }
 }
 
@@ -132,6 +100,9 @@ class GroupSyncMessageEvent extends SyncMessageEvent {
         super(event);
         this.subject = event['subject']
     }
+    toLog(): string {
+        return `Group Message Sync [${this.subject.name}(${this.subject.id})]=> ${this.messageChain.map((seg) => seg.toLog()).join('')}`
+    }
 }
 
 class TempSyncMessageEvent extends SyncMessageEvent {
@@ -140,6 +111,9 @@ class TempSyncMessageEvent extends SyncMessageEvent {
     constructor(event: object) {
         super(event);
         this.subject = event['subject']
+    }
+    toLog(): string {
+        return `Temp Message Sync [${this.subject.memberName}(${this.subject.id}) in ${this.subject.group.name}(${this.subject.group.id})]=> ${this.messageChain.map((seg) => seg.toLog()).join('')}`
     }
 }
 
@@ -150,7 +124,26 @@ class StrangerSyncMessageEvent extends SyncMessageEvent {
         super(event);
         this.subject = event['subject']
     }
+    toLog(): string {
+        return `Stranger Message Sync [${this.subject.nickname}(${this.subject.id})]=> ${this.messageChain.map((seg) => seg.toLog()).join('')}`
+    }
 }
-export {GroupInfo,GroupPermission}
-export {GroupMessageEvent,FriendMessageEvent,StrangerMessageEvent,TempMessageEvent,OtherClientMessageEvent}
-export {GroupSyncMessageEvent,FriendSyncMessageEvent,TempSyncMessageEvent,StrangerSyncMessageEvent}
+
+function GetMessageEvent(event: object): MessageEvent {
+    switch (event['type']) {
+        case 'GroupMessage': return new GroupMessageEvent(event);
+        case 'FriendMessage': return new FriendMessageEvent(event);
+        case 'StrangerMessage': return new StrangerMessageEvent(event);
+        case 'TempMessage': return new TempMessageEvent(event);
+        case 'OtherClientMessage': return new OtherClientMessageEvent(event);
+        case 'GroupMessageSync': return new GroupSyncMessageEvent(event);
+        case 'FriendMessageSync': return new FriendSyncMessageEvent(event);
+        case 'TempMessageSync': return new TempSyncMessageEvent(event);
+        case 'StrangerMessageSync': return new StrangerSyncMessageEvent(event);
+    }
+    return null;
+}
+
+export { GetMessageEvent }
+export { GroupMessageEvent, FriendMessageEvent, StrangerMessageEvent, TempMessageEvent, OtherClientMessageEvent }
+export { GroupSyncMessageEvent, FriendSyncMessageEvent, TempSyncMessageEvent, StrangerSyncMessageEvent }
