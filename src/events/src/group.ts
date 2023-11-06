@@ -1,4 +1,4 @@
-import { GroupInfo, GroupMemberInfo, GroupPermission } from "../class.js";
+import { GroupInfo, GroupMemberInfo, GroupPermission } from "../../class.js";
 import { BaseEvent } from "./base.js";
 
 class BotGroupPermissionChangeEvent extends BaseEvent {
@@ -24,7 +24,7 @@ class BotMuteEvent extends BaseEvent {
         this.operator = event['operator']
     }
     toLog(): string {
-        return `Bot Has been Muted For ${this.durationSeconds} seconds in Group ${this.operator.group.id} by ${this.operator.id}`
+        return `Bot Has been Muted For ${this.durationSeconds} seconds in Group ${this.operator.group.id} ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 class BotUnmuteEvent extends BaseEvent {
@@ -34,7 +34,7 @@ class BotUnmuteEvent extends BaseEvent {
         this.operator = event['operator']
     }
     toLog(): string {
-        return `Bot Has been Unmuted in Group ${this.operator.group.id} by ${this.operator.id}`
+        return `Bot Has been Unmuted in Group ${this.operator.group.id} ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 class BotJoinGroupEvent extends BaseEvent {
@@ -46,7 +46,7 @@ class BotJoinGroupEvent extends BaseEvent {
         this.invitor = event['invitor']
     }
     toLog(): string {
-        return `Bot Joined Group ${this.group.id} by ${this.invitor.id}`
+        return `Bot Joined Group ${this.group.id} ${this.invitor ? 'by ' + this.invitor.id.toString() : ''}`
     }
 }
 class BotLeaveEventActive extends BaseEvent {
@@ -68,7 +68,7 @@ class BotLeaveEventKick extends BaseEvent {
         this.operator = event['operator']
     }
     toLog(): string {
-        return `Bot was Kicked From Group ${this.group.id} by ${this.operator.id}`
+        return `Bot was Kicked From Group ${this.group.id} ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 class GroupRecallEvent extends BaseEvent {
@@ -86,7 +86,7 @@ class GroupRecallEvent extends BaseEvent {
         this.time = event['time']
     }
     toLog(): string {
-        return `Message ${this.messageId} in Group ${this.group.id} was recalled by ${this.operator.id}`
+        return `Message ${this.messageId} in Group ${this.group.id} was recalled ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 class FriendRecallEvent extends BaseEvent {
@@ -229,7 +229,7 @@ class MemberJoinEvent extends BaseEvent {
         this.invitor = event['invitor']
     }
     toLog(): string {
-        return `Member ${this.member.id} Joined Group ${this.member.group.id} by ${this.invitor.id}`
+        return `Member ${this.member.id} Joined Group ${this.member.group.id} ${this.invitor ? 'by ' + this.invitor.id.toString() : ''}`
     }
 }
 class MemberLeaveEventKick extends BaseEvent {
@@ -241,7 +241,7 @@ class MemberLeaveEventKick extends BaseEvent {
         this.operator = event['operator']
     }
     toLog(): string {
-        return `Member ${this.member.id} was Kicked From Group ${this.member.group.id} by ${this.operator.id}`
+        return `Member ${this.member.id} was Kicked From Group ${this.member.group.id} ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 class MemberLeaveEventQuit extends BaseEvent {
@@ -307,7 +307,7 @@ class MemberMuteEvent extends BaseEvent {
         this.member = event['member']
     }
     toLog(): string {
-        return `Member ${this.member.id} was Muted For ${this.durationSeconds} seconds in Group ${this.operator.group.id} by ${this.operator.id}`
+        return `Member ${this.member.id} was Muted For ${this.durationSeconds} seconds in Group ${this.member.group.id} ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 
@@ -320,7 +320,7 @@ class MemberUnmuteEvent extends BaseEvent {
         this.member = event['member']
     }
     toLog(): string {
-        return `Member ${this.member.id} was Unmuted in Group ${this.operator.group.id} by ${this.operator.id}`
+        return `Member ${this.member.id} was Unmuted in Group ${this.member.group.id} ${this.operator ? 'by ' + this.operator.id.toString() : ''}`
     }
 }
 class MemberHonorChangeEvent extends BaseEvent {

@@ -1,4 +1,4 @@
-import { FriendInfo, GroupMemberInfo } from "../class.js";
+import { FriendInfo, GroupMemberInfo } from "../../class.js";
 import { CommandEvent } from "./base.js";
 
 class CommandExecutedEvent extends CommandEvent {

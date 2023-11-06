@@ -1,26 +1,5 @@
-abstract class MessageSegment {
-    public type: string
-
-    protected constructor(segment: object) {
-        this.type = segment['type']
-    }
-
-    abstract toLog(): string
-}
-
-interface EncodeAbleMessage {
-    ToMiraiCode(): string
-}
-
-function escapeMirai(data: string): string {
-    return data.replaceAll('[', '\\[')
-        .replaceAll("]", "\\]")
-        .replaceAll(":", "\\:")
-        .replaceAll(",", "\\,")
-        .replaceAll("\\", "\\\\");
-}
-
-type MessageChain = MessageSegment[]
+import { MessageSegment, EncodeAbleMessage, escapeMirai } from "./base.js";
+import { ForwardMessageNode, ForwardMessageDisplay } from "./base.js";
 
 class Source extends MessageSegment {
     id: number
@@ -35,6 +14,10 @@ class Source extends MessageSegment {
     toLog(): string {
         return "";
     }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Source") return false;
+        return true;
+    }
 }
 
 class Quote extends MessageSegment {
@@ -42,7 +25,7 @@ class Quote extends MessageSegment {
     groupId: number
     senderId: number
     targetId: number
-    origin: MessageChain
+    origin: MessageSegment[]
 
     constructor(segment: object) {
         super(segment);
@@ -54,7 +37,11 @@ class Quote extends MessageSegment {
     }
 
     toLog(): string {
-        return `>`;
+        return `[>${this.id}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Quote") return false;
+        return this.id == (other as Quote).id;
     }
 }
 
@@ -73,7 +60,11 @@ class At extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `${this.display}(${this.target})`;
+        return `[@${this.target}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "At") return false;
+        return this.target == (other as At).target;
     }
 }
 
@@ -87,7 +78,11 @@ class AtAll extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `@全体成员`;
+        return `[@ALL]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "AtAll") return false;
+        return true
     }
 }
 
@@ -106,7 +101,11 @@ class Face extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[表情:${this.name}]`;
+        return `[Face:${this.name}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Face") return false;
+        return this.faceId == (other as Face).faceId || this.name == (other as Face).name;
     }
 
 }
@@ -125,6 +124,10 @@ class Plain extends MessageSegment implements EncodeAbleMessage {
 
     toLog(): string {
         return this.text;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Plain") return false;
+        return this.text == (other as Plain).text;
     }
 }
 
@@ -147,7 +150,11 @@ class Image extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[图片:${this.url}]`;
+        return `[IMG:${this.url}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Image") return false;
+        return this.imageId == (other as Image).imageId;
     }
 
 }
@@ -171,7 +178,11 @@ class FlashImage extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[闪照:${this.url}]`;
+        return `[FIMG:${this.url}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "FlashImage") return false;
+        return this.imageId == (other as FlashImage).imageId;
     }
 }
 
@@ -192,7 +203,12 @@ class Voice extends MessageSegment {
     }
 
     toLog(): string {
-        return `[语音:${this.url}]`;
+        return `[Voice:${this.url}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Voice") return false;
+        return this.voiceId == (other as Voice).voiceId;
+
     }
 }
 
@@ -207,6 +223,9 @@ class Xml extends MessageSegment {
     toLog(): string {
         return `[XML]`;
     }//TODO
+    equals(other: MessageSegment): boolean {
+        return false
+    }
 }
 
 class Json extends MessageSegment {
@@ -219,6 +238,9 @@ class Json extends MessageSegment {
 
     toLog(): string {
         return `[JSON]`;
+    }
+    equals(other: MessageSegment): boolean {
+        return false
     }
 }
 
@@ -236,6 +258,9 @@ class App extends MessageSegment implements EncodeAbleMessage {
 
     toLog(): string {
         return `[APP]`;
+    }
+    equals(other: MessageSegment): boolean {
+        return false
     }
 }
 
@@ -261,7 +286,11 @@ class Poke extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[戳]`;
+        return `[Poke:${this.name}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "Poke") return false;
+        return this.name == (other as Poke).name;
     }
 }
 
@@ -278,7 +307,10 @@ class Dice extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[骰子:${this.value}]`;
+        return `[Dice:${this.value}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        return false
     }
 }
 
@@ -293,69 +325,14 @@ class MarketFace extends MessageSegment {
     }
 
     toLog(): string {
-        return `[大表情:${this.name}]`;
+        return `[${this.name}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "MarketFace") return false;
+        return this.id == (other as MarketFace).id;
     }
 }
 
-class MusicKindClass {
-
-    appId: number
-    platform: number
-    sdkVersion: string
-    packageName: string
-    signature: string
-
-    constructor(appId: number, platform: number, sdkVersion: string, packageName: string, signature: string) {
-        this.appId = appId
-        this.platform = platform
-        this.sdkVersion = sdkVersion
-        this.packageName = packageName
-        this.signature = signature
-    }
-
-}
-
-namespace MusicKind {
-    let NeteaseCloudMusic = new MusicKindClass(
-        100495085,
-        1,
-        "0.0.0",
-        "com.netease.cloudmusic",
-        "da6b069da1e2982db3e386233f68d76d")
-    let QQMusic = new MusicKindClass(
-        100497308,
-        1,
-        "0.0.0",
-        "com.tencent.qqmusic",
-        "cbd27cd7c861227d013a25b2d10f0799"
-    )
-    let MiguMusic = new MusicKindClass(
-        1101053067,
-        1,
-        "0.0.0",
-        "cmccwm.mobilemusic",
-        "6cdc72a439cef99a3418d2a78aa28c73"
-    )
-
-
-    let KugouMusic = new MusicKindClass(
-        205141,
-        1,
-        "0.0.0",
-        "com.kugou.android",
-        "fe4a24d80fcf253a00676a808f62c2c6"
-    )
-
-
-    let KuwoMusic = new MusicKindClass(
-        100243533,
-        1,
-        "0.0.0",
-        "cn.kuwo.player",
-        "bf9ff4ffb4c558a34ee3fd52c223ebf5"
-    )
-
-}
 
 class MusicShare extends MessageSegment implements EncodeAbleMessage {
     kind: string
@@ -384,46 +361,29 @@ class MusicShare extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[音乐:${this.title}]`;
+        return `[MusicShare:${this.title}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        return false
     }
 }
 
-class ForwardMessageDisplay {
-    title: string
-    brief: string
-    source: string
-    preview: string[]
-    summary: string
-}
-
-class NodeRef {
-    messageId: number
-    target: number
-}
-
-class ForwardMessageNode {
-    "senderId": number
-    "time": number
-    "senderName": string
-    "messageChain": MessageChain
-    "messageId": number
-    "messageRef": NodeRef
-}
-
-class ForwardMessage extends MessageSegment {
+class Forward extends MessageSegment {
     display: ForwardMessageDisplay
     nodeList: ForwardMessageNode
 
     constructor(segment: object) {
         super(segment);
-        this.display = segment['segment']
+        this.display = segment['display']
         this.nodeList = segment['nodeList']
     }
 
     toLog(): string {
-        return `[转发消息]`;
+        return `[Forward:${JSON.stringify(this)}]`;
+    }//TODO
+    equals(other: MessageSegment): boolean {
+        return false
     }
-
 }
 
 class File extends MessageSegment implements EncodeAbleMessage {
@@ -445,7 +405,10 @@ class File extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[文件:${this.name}]`;
+        return `[File:${this.name}]`;
+    }
+    equals(other: MessageSegment): boolean {
+        return false
     }
 }
 
@@ -461,29 +424,13 @@ class MiraiCode extends MessageSegment {
     toLog(): string {
         return `[Mirai:${this.code}]`;
     }
+    equals(other: MessageSegment): boolean {
+        if (other.type != "MiraiCode") return false;
+        return this.code == (other as MiraiCode).code;
+    }
 }
 
-export {MessageChain, MessageSegment}
 export {
-    Source,
-    Poke,
-    ForwardMessage,
-    Face,
-    FlashImage,
-    Quote,
-    File,
-    At,
-    Xml,
-    MarketFace,
-    App,
-    NodeRef,
-    Plain,
-    MiraiCode,
-    Voice,
-    Image,
-    ForwardMessageNode,
-    Dice,
-    Json,
-    AtAll,
-    MusicShare
+    Source, Poke, Forward, Face, FlashImage, Quote, File, At, Xml, MarketFace,
+    App, Plain, MiraiCode, Voice, Image, Dice, Json, AtAll, MusicShare,
 }

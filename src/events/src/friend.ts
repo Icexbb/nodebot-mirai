@@ -51,5 +51,5 @@ function GetFriendEvent(event: object): FriendEvent {
     return null;
 }
 
-export { FriendEvent, FriendAddEvent, FriendDeleteEvent, FriendInputStatusChangedEvent, FriendNickChangedEvent }
+export { FriendAddEvent, FriendDeleteEvent, FriendInputStatusChangedEvent, FriendNickChangedEvent }
 export { GetFriendEvent }
