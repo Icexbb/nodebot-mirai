@@ -219,7 +219,7 @@ export class WsApiCaller implements ApiCallerInterface {
         if (this.sessionKey !== null && content.hasOwnProperty("sessionKey") && content["sessionKey"] === undefined) {
             content["sessionKey"] = this.sessionKey
         }
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             let syncID = Hash(command, content, subCommand ?? "")
             this.waitList.push(syncID)
             this.logger.info(`[${syncID.substring(0, 6)}] mirai <== call(${command})`)
@@ -230,8 +230,8 @@ export class WsApiCaller implements ApiCallerInterface {
                 content: content
             }
             this.eventEmitter.once(syncID, (data: ApiResponse) => {
-                this.logger.info(`[${syncID.substring(0, 6)}] mirai ==> response{${command},result=${data.msg}}`)
-                resolve(data)
+                this.logger.info(`[${syncID.substring(0, 6)}] mirai ==> response{${command},result=${data.code}}`)
+                if (data.code != 0) reject(data); else resolve(data);
             })
             this.connection.send(JSON.stringify(data))
         })

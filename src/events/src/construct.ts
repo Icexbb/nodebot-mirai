@@ -21,7 +21,7 @@ export function GetEvent(data: object, bot?: NodeBot): BaseEvent {
         event = GetRequestEvent(data); if (event !== null) break;
         event = new UnimplementedEvent(data);
     }
-    event.bot = bot;
+    event.registerBot(bot)
     return event;
 }
 

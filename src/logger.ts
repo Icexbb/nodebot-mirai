@@ -35,7 +35,9 @@ class Logger {
             }
 
         })
-        const ApiHandler = function (...args: string[]) {
+        const consoleApi = function (...args: string[]) {
+            if (this.apiCaller === undefined)
+                this.console("Api Caller Not Registered")
             let command = args[0]
             let argsList = {}
             args.slice(1).forEach((pair) => {
@@ -58,7 +60,11 @@ class Logger {
             if (command === "" || command === undefined) {
                 this.console("Usage: api <command> [args...]")
             } else {
-                this.apiCaller.makeApiCall(command, argsList)
+                this.apiCaller.makeApiCall(command, argsList).then((data: any) => {
+                    this.console(JSON.stringify(data))
+                }).catch((err: any) => {
+                    this.console(JSON.stringify(err))
+                })
             }
         }
         const consoleReply = function (...args: string[]) {
@@ -81,16 +87,19 @@ class Logger {
             this.apiCaller.makeApiCall("sendGroupMessage", { messageChain: msg, target: group, group: group })
 
         }
+        // const consoleService = function (...args: string[]) {}
+        const consoleHelp = function (...args: string[]) { }
+
         this.command.on("line", (line: string[]) => {
             switch (line[0].toLowerCase().trim()) {
                 case "exit": case "quit": this.console("Bot Terminated"); process.exit(0);
                 case "echo": this.console(line.slice(1).join(" ")); break;
                 case "ping": this.console("pong"); break;
                 case "clear": process.stdout.write("\u001b[2J\u001b[0;0H"); this.buffer = []; break;
-                case "api": ApiHandler.apply(this, line.slice(1)); break;
-                // case "help": this.console("exit,quit,echo,ping,clear,api,help"); break;
+                case "api": consoleApi.apply(this, line.slice(1)); break;
+                case "help": consoleHelp.apply(this, line.slice(1)); break;
                 case "reply": consoleReply.apply(this, line.slice(1)); break;
-                case "send":
+                case "send": consoleSend.apply(this, line.slice(1)); break;
                 case "": break;
                 default: this.console(`Unknown Command: ${line[0].trim()}`); break;
             }

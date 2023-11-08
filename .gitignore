@@ -138,7 +138,13 @@ src/**/*.js
 src/**/*.js.map
 
 test.js
+test.ts
 
 data
 service
 !src/service
+
+
+run.ts
+run.js
+run.js.map

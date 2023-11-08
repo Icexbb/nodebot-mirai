@@ -22,8 +22,9 @@ export class NodeBot extends ConfiguredBotObject {
 
     constructor(host: string, port: number, qq: number, verifyKey: string) {
         super("bot", "bot");
+        this.logger?.info(`Bot ${qq} connecting to ${host}:${port}`)
         this.qq = qq
-        this.adapter = new MiraiHttpWsAdapter(host, port, qq, verifyKey);
+        this.adapter = new MiraiHttpWsAdapter(host, port, qq, verifyKey, this);
         this.adapter.connect().then(() => {
             this.adapter.evEmitter.emit("BotConnected")
             this.loadService()

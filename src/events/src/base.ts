@@ -11,6 +11,9 @@ abstract class BaseEvent {
         this.type = event['type']
         this.rawData = event
     }
+    registerBot(bot: NodeBot) {
+        this.bot = bot
+    }
     abstract toLog(): string
 
     getSelfId(): number {
@@ -19,7 +22,7 @@ abstract class BaseEvent {
     }
     getSelfNames(): string[] {
         if (this.bot === undefined) throw new Error("Bot not set")
-        return this.bot.getConfig()['names'] ?? []
+        return this.bot.getConfig()['name'] ?? []
     }
 }
 abstract class CommandEvent extends BaseEvent {

@@ -5,7 +5,7 @@ import { FriendInfo, GroupMemberInfo, GroupPermission } from "../class.js";
 import { MessageEvent, FriendMessage, GroupMessage } from "../events/index.js"
 import { ConfiguredBotObject } from "../class.js";
 import { PermissionLevel, EventPremissionSolver } from "./permission.js"
-import { NewSegment } from "../message/index.js";
+import { MessageChain, NewSegment } from "../message/index.js";
 import { Hash } from "../utils.js";
 import { Logger } from "../logger.js";
 
@@ -17,7 +17,7 @@ type GroupResposer = { trigger: RegExp, func: GroupResposerFunc, visible: boolea
 type ScheduledFunction = { cron: string, func: (service: Service) => void, job: schedule.Job, visible: boolean }
 
 export abstract class Service extends ConfiguredBotObject {
-    permissionLevel: PermissionLevel = PermissionLevel.normal
+    permissionLevel: PermissionLevel
     FriendResposers: { [key: string]: FriendResposer }
     GroupResposers: { [key: string]: GroupResposer }
     ScheduledFunctions: { [key: string]: ScheduledFunction } = {};
@@ -28,12 +28,20 @@ export abstract class Service extends ConfiguredBotObject {
     visible: boolean = true
     alias: string = ""
 
-    protected constructor(name: string, { enabledDefault = false }: { enabledDefault?: boolean }) {
+    protected constructor(name: string, { enabledDefault = false, permissionLevel = PermissionLevel.normal }: { enabledDefault?: boolean, permissionLevel?: PermissionLevel }) {
         super(name);
         this.name = name
         this.serviceConfig = { enabledDefault }
+        this.permissionLevel = permissionLevel
         this.FriendResposers = {}
         this.GroupResposers = {}
+    }
+    reply(event: FriendMessage | GroupMessage, message: MessageChain, quote: boolean = true) {
+        if (event instanceof FriendMessage) {
+            this.bot.adapter.api.SendFriendMessage(message, event.sender.id, quote ? event.msgId() : null)
+        } else {
+            this.bot.adapter.api.SendGroupMessage(message, event.sender.group.id, event.sender.id, quote ? event.msgId() : null)
+        }
     }
     serviceHelp(): string {
         const funcHelp = (f: FriendResposer | GroupResposer, prefix: string) => {
@@ -99,28 +107,29 @@ export abstract class Service extends ConfiguredBotObject {
         this.bot.adapter.evEmitter.on("FriendMessage", (miraiEvent) => { this.handleFriendMessage(this, miraiEvent) })
         this.bot.adapter.evEmitter.on("GroupMessage", (miraiEvent) => { this.handleGroupMessage(this, miraiEvent) })
     }
-    private checkEnabled(senderInfo: FriendInfo | GroupMemberInfo): boolean {
-        if (senderInfo instanceof FriendInfo) {
+    private checkEnabled(event: GroupMessage | FriendMessage): boolean {
+        if (event instanceof FriendMessage) {
             return true
         } else {
             let config = this.getConfig() as { enabled: number[], disabled: number[] }
             if (!config['enabled']) config['enabled'] = []
             if (!config['disabled']) config['disabled'] = []
             if (this.serviceConfig.enabledDefault)
-                return !(senderInfo.group.id in config['disabled'])
+                return !(event.sender.group.id in config['disabled'])
             else
-                return (senderInfo.group.id in config['enabled'])
+                return (event.sender.group.id in config['enabled'])
         }
     }
-
     private handleFriendMessage = (service: Service, event: FriendMessage) => {
-        if (!service.checkEnabled(event.sender)) return;
+        if (!service.checkEnabled(event)) return;
         let permissionSolver = new EventPremissionSolver(event)
         if (permissionSolver.userPermission < service.permissionLevel) return;
         for (let hash in service.FriendResposers) {
             let matchRes = event.msgToString().match(service.FriendResposers[hash].trigger)
             if (matchRes !== null)
                 try {
+                    if (service.FriendResposers[hash].visible)
+                        this.logger.log(`Message ${event.msgId()} matched ${service.FriendResposers[hash].trigger.toString()}}`)
                     service.FriendResposers[hash].func(service, event, matchRes)
                 } catch (e) {
                     service.logger.error(`Error in ${service.name} FriendResposer ${service.FriendResposers[hash].func.name}: ${e}`)
@@ -128,7 +137,7 @@ export abstract class Service extends ConfiguredBotObject {
         }
     }
     private handleGroupMessage = (service: Service, event: GroupMessage) => {
-        if (!service.checkEnabled(event.sender)) return;
+        if (!service.checkEnabled(event)) return;
         let permissionSolver = new EventPremissionSolver(event)
         if (permissionSolver.groupPermission < service.permissionLevel) return;
         if (permissionSolver.userPermission < service.permissionLevel) return;
@@ -137,13 +146,14 @@ export abstract class Service extends ConfiguredBotObject {
             let matchRes = event.msgToString().match(service.GroupResposers[hash].trigger)
             if (matchRes !== null)
                 try {
+                    if (service.GroupResposers[hash].visible)
+                        this.logger.log(`Message ${event.msgId()} matched ${service.GroupResposers[hash].trigger.toString()}}`)
                     service.GroupResposers[hash].func(service, event, matchRes)
                 } catch (e) {
                     service.logger.error(`Error in ${service.name} GroupResposer ${service.GroupResposers[hash].func.name}: ${e}`)
                 }
         }
     }
-
     onFriendMessage(trigger: RegExp, func: (service: Service, event: FriendMessage, matchRes: RegExpExecArray) => void, visible: boolean = true,) {
         let f = this.FriendResposers
         let pair = { trigger, func, visible }

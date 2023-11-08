@@ -1,18 +1,31 @@
 {
-  "name": "nodebot",
+  "name": "nodebot-mirai",
   "version": "1.0.0",
-  "description": "",
+  "description": "Use nodejs to write mirai bot, support websocket and http api",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "directories": {
     "lib": "lib"
   },
   "scripts": {
     "compile": "tsc -t es2022",
-    "clear":"rm src/**/*.js && rm  src/**/*.js.map",
-    "dev": "cls && tsc -t es2022 && node index"
+    "dev": "cls && npm run compile && node index",
+    "start": "npm run compile && node run"
   },
-  "author": "",
+  "keywords": [
+    "mirai",
+    "mirai-api-http",
+    "nodebot",
+    "nodebot-mirai",
+    "websocket",
+    "ws",
+    "qq",
+    "chatbot"
+  ],
+  "author": "icexbb",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "chalk": "^5.3.0",
@@ -25,6 +38,7 @@
   "devDependencies": {
     "@types/node-schedule": "^2.1.2",
     "@types/ws": "^8.5.8",
+    "axios": "^1.6.1",
     "tsc": "^2.0.4"
   }
 }

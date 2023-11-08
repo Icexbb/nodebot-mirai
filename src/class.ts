@@ -56,6 +56,8 @@ export class ConfiguredBotObject {
     }
     protected constructor(name: string, type: string = "service") {
         this.type = type
+        if (this.type=== "bot") global.logger?.info(`Loading Bot Config`)
+
         if (!this.NameIsValide(name)) throw new Error(`Object name ${name} is not valide`)
         this.name = name;
         this.configPath = ConfiguredBotObject.fromConfigRoot(`${this.name}.json`);

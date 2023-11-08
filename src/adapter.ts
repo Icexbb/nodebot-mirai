@@ -4,6 +4,7 @@ import { EventEmitter } from "events";
 import { GetEvent } from "./events/src/construct.js";
 import { WsApiCaller } from "./api.js";
 import { Logger, logger } from "./logger.js"
+import { NodeBot } from "./bot.js";
 export class MiraiHttpWsAdapter {
     host: string
     port: number
@@ -16,23 +17,23 @@ export class MiraiHttpWsAdapter {
     api: WsApiCaller
     logger: Logger = logger
 
+    bot: NodeBot
+
     url(): string {
         return `ws://${this.host}:${this.port}/all?verifyKey=${this.verifyKey}&qq=${this.qq}`
     }
 
 
-    constructor(host: string, port: number, qq: number, verifyKey: string) {
+    constructor(host: string, port: number, qq: number, verifyKey: string, bot: NodeBot) {
         this.host = host
         this.port = port
         this.qq = qq
         this.verifyKey = verifyKey
-    }
-    connectSync() {
-
+        this.bot = bot
     }
     connect() {
         return new Promise((resolve) => {
-            this.logger.info(`webSocket Connecting to ${this.url()}`)
+            // this.logger.info(`webSocket Connecting to ${this.url()}`)
             this.connection = new ws.WebSocket(this.url())
             this.connection.once("open", () => {
                 this.initialMsgHandler()
@@ -48,12 +49,15 @@ export class MiraiHttpWsAdapter {
 
         this.connection.onclose = (event: ws.CloseEvent) => {
             this.logger.error(`webSocket to ${this.url()} has Disconnected`)
+            setTimeout(() => {
+                this.logger.info(`webSocket Reconnecting to ${this.url()}`)
+                this.connect()
+            }, 1000);
         }
-        // this.connection.onerror = (event: ws.ErrorEvent) => { }
         this.connection.onmessage = (event: ws.MessageEvent) => {
             let rawData = JSON.parse(String(event.data))
             if (rawData.syncId === "-1") {
-                let miraiEvent = GetEvent(rawData.data)
+                let miraiEvent = GetEvent(rawData.data, this.bot)
                 this.evEmitter.emit(miraiEvent.type, miraiEvent)
                 let logInfo: string
                 try {
