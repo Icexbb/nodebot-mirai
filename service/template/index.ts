@@ -1,4 +1,5 @@
 import { Service } from "../../src/index.js";
+import { MessageSegmentTypes } from "../../src/message/index.js";
 
 class ServiceTemplate extends Service {
     constructor() {
@@ -6,8 +7,12 @@ class ServiceTemplate extends Service {
         this.visible = false
     }
     registerResponser() {
-        this.onGroupMessage(/.?/, (service, event, matchRes) => {
-        })
+        /*Match Any Message*/
+        this.onGroupMessageText(/.?/, (service, event, matchRes) => { })
+        /*Equal as Above*/
+        this.onAnyGroupMessage((service, event) => { })
+        /*Match Any Group Message with Image*/
+        this.onGroupMessagePart(MessageSegmentTypes.Image, (service, event) => { })
     }
 }
 const service = new ServiceTemplate()
