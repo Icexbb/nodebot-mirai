@@ -65,6 +65,7 @@ test.js
 test.ts
 
 data
+config
 service/**
 !src/service
 !src/service/**/*.ts

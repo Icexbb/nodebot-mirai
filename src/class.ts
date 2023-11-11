@@ -1,5 +1,5 @@
 import * as fs from 'node:fs';
-
+import * as path from 'node:path';
 export class FriendInfo {
     id: number
     nickname: string
@@ -37,10 +37,10 @@ export class ConfiguredBotObject {
     type: string
     NameIsValide(name: string): boolean {
         let reservedName = ['bot', 'permission']
-        let usedName = fs.readdirSync(ConfiguredBotObject.fromConfigRoot())
-            .filter((file) => { return file.endsWith(".json") })
-            .map((file) => { return file.substring(0, file.length - 5) })
-            .filter((file) => { return !reservedName.includes(file) })
+        let usedName = fs.readdirSync(this.fromConfigRoot(this.type))
+            .filter((file) => file.endsWith(".json"))
+            .map((file) => file.substring(0, file.length - 5))
+            .filter((file) => !reservedName.includes(file))
 
         if (this.type == "bot" || this.type == "permission") {
             return !usedName.includes(name)
@@ -48,17 +48,20 @@ export class ConfiguredBotObject {
             return !reservedName.includes(name) // && !usedName.includes(name)
         }
     }
-    static fromConfigRoot(...path: string[]): string {
-        let root = process.cwd() + ['', 'data', ...path].join("/");
+    fromConfigRoot(...path: string[]): string {
+        let root = process.cwd() + ['', 'config', ...path].join("/");
         if (process.platform == "win32") root = root.replaceAll("/", "\\")
         else root = root.replaceAll("\\", "/")
         return root
     }
     protected constructor(name: string, type: string = "service") {
         this.type = type
-        if (!this.NameIsValide(name)) throw new Error(`Object name ${name} is not valide`)
         this.name = name;
-        this.configPath = ConfiguredBotObject.fromConfigRoot(`${this.name}.json`);
+        this.configPath = this.fromConfigRoot(this.type, `${this.name}.json`);
+        if (!fs.existsSync(path.dirname(this.configPath))) {
+            fs.mkdirSync(path.dirname(this.configPath), { recursive: true });
+        }
+        if (!this.NameIsValide(name)) throw new Error(`Object name ${name} is not valide`)
         this.initConfig();
     }
     createConfig(template?: object) {

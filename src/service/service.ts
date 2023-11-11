@@ -1,4 +1,5 @@
 import schedule from "node-schedule"
+import chalk from "chalk";
 
 import { NodeBot } from "../bot.js"
 import { MessageEvent, FriendMessage, GroupMessage } from "../events/index.js"
@@ -8,7 +9,6 @@ import { MessageChain, MessageSegmentTypes, NewSegment } from "../message/index.
 import { Hash } from "../utils.js";
 import { Logger } from "../logger.js";
 import { EventEmitter } from "events";
-import chalk from "chalk";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 

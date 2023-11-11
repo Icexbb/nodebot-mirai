@@ -226,12 +226,8 @@ export class WsApiCaller implements ApiCallerInterface {
         if (this.sessionKey !== null && content.hasOwnProperty("sessionKey") && content["sessionKey"] === undefined) {
             content["sessionKey"] = this.sessionKey
         }
-        const defaultApiResolve = (data: ApiResponseTypes) => {
-            this.logger.error(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.green(data['code'])} `)
-        }
-        const defaultApiRejection = (data: ApiResponseTypes) => {
-            this.logger.info(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.red(data['code'])}`)
-        }
+        const defaultApiResolve = (data: ApiResponseTypes) => { }
+        const defaultApiRejection = (data: ApiResponseTypes) => { }
 
         return new Promise((resolve = defaultApiResolve, reject = defaultApiRejection) => {
             this.waitList.push(syncID)
@@ -243,8 +239,14 @@ export class WsApiCaller implements ApiCallerInterface {
                 content: content
             }
             this.eventEmitter.once(syncID, (data: ApiResponse) => {
-                if (data.code == 0) resolve(data);
-                else reject(data);
+                if (data.code == 0) {
+                    resolve(data);
+                    this.logger.info(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.green(data['code'])} `)
+                }
+                else {
+                    reject(data);
+                    this.logger.error(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.red(data['code'])}`)
+                }
             })
             this.connection.send(JSON.stringify(data))
         })
