@@ -1,14 +1,14 @@
 import schedule from "node-schedule"
 
 import { NodeBot } from "../bot.js"
-import { FriendInfo, GroupMemberInfo, GroupPermission } from "../class.js";
 import { MessageEvent, FriendMessage, GroupMessage } from "../events/index.js"
-import { ConfiguredBotObject } from "../class.js";
+import { ConfiguredBotObject, GroupPermission } from "../class.js";
 import { PermissionLevel, EventPremissionSolver } from "./permission.js"
 import { MessageChain, MessageSegmentTypes, NewSegment } from "../message/index.js";
 import { Hash } from "../utils.js";
 import { Logger } from "../logger.js";
 import { EventEmitter } from "events";
+import chalk from "chalk";
 
 type TextHandlerFuncFriend = (service: Service, event: FriendMessage, matchRes: RegExpExecArray | RegExpMatchArray) => void
 type TextHandlerFuncGroup = (service: Service, event: GroupMessage, matchRes: RegExpExecArray | RegExpMatchArray) => void
@@ -48,7 +48,7 @@ export abstract class Service extends ConfiguredBotObject {
     AnyHandlerSetGroup: { [key: string]: AnyHandlerObjGroup };
     AnyHandlerSetFriend: { [key: string]: AnyHandlerObjFriend };
 
-    msgEventEmitter: EventEmitter = new EventEmitter()
+    msgEventEmitter: EventEmitter
     abstract registerResponser(): void
 
     bot: NodeBot
@@ -67,22 +67,12 @@ export abstract class Service extends ConfiguredBotObject {
         this.PartHandlerSetFriend = {}
         this.TimeHandlerSet = {}
 
-        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgTextFriend(miraiEvent, this) })
-        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgTextGroup(miraiEvent, this) })
-
-        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgPartGroup(miraiEvent, this) })
-        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgPartFriend(miraiEvent, this) })
-
-        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgAnyGroup(miraiEvent, this) })
-        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgAnyFriend(miraiEvent, this) })
-
-        this.registerResponser()
     }
     reply(event: FriendMessage | GroupMessage, message: MessageChain, quote: boolean = true) {
         if (event instanceof FriendMessage) {
-            this.bot.adapter.api.SendFriendMessage(message, event.sender.id, quote ? event.msgId() : null)
+            this.bot.api.SendFriendMessage(message, event.sender.id, quote ? event.msgId() : null)
         } else {
-            this.bot.adapter.api.SendGroupMessage(message, event.sender.group.id, event.sender.id, quote ? event.msgId() : null)
+            this.bot.api.SendGroupMessage(message, event.sender.group.id, event.sender.id, quote ? event.msgId() : null)
         }
     }
     serviceHelp(): string {
@@ -123,7 +113,7 @@ export abstract class Service extends ConfiguredBotObject {
 
             service.setConfig(config)
             let msg = [NewSegment.Plain(`已开启${service.name}`)]
-            service.bot.adapter.api.SendGroupMessage(msg, group, group, event.msgId())
+            service.bot.api.SendGroupMessage(msg, group, group, event.msgId())
         }, false)
         this.onGroupMessageText(new RegExp(`^(关闭|禁用|停用)(${this.regServiceName()})`), function DisableService(service, event) {
             if (event.sender.permission == GroupPermission.MEMBER) return;
@@ -137,18 +127,34 @@ export abstract class Service extends ConfiguredBotObject {
 
             service.setConfig(config)
             let msg = [NewSegment.Plain(`已关闭${service.name}`)]
-            service.bot.adapter.api.SendGroupMessage(msg, group, group, event.msgId())
+            service.bot.api.SendGroupMessage(msg, group, group, event.msgId())
         }, false)
         this.onGroupMessageText(new RegExp(`^(帮助|[Hh][Ee][Ll][Pp])(${this.regServiceName()})`), function HelpService(service, event) {
             let helpMsg = service.serviceHelp()
             let msg = [NewSegment.Plain(helpMsg.trim())]
-            service.bot.adapter.api.SendGroupMessage(msg, event.sender.group.id, event.sender.group.id, event.msgId())
+            service.bot.api.SendGroupMessage(msg, event.sender.group.id, event.sender.group.id, event.msgId())
         }, false)
+
+        this.initEventEmitter()
+        this.registerResponser()
+    }
+    private initEventEmitter() {
         this.bot.adapter.evEmitter.on("FriendMessage", (event) => { this.msgEventEmitter.emit("FriendMessage", event) })
         this.bot.adapter.evEmitter.on("GroupMessage", (event) => { this.msgEventEmitter.emit("GroupMessage", event) })
+
+        this.msgEventEmitter = new EventEmitter()
+        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgTextFriend(miraiEvent, this) })
+        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgTextGroup(miraiEvent, this) })
+
+        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgPartGroup(miraiEvent, this) })
+        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgPartFriend(miraiEvent, this) })
+
+        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgAnyGroup(miraiEvent, this) })
+        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgAnyFriend(miraiEvent, this) })
     }
     private checkEnabled(event: GroupMessage | FriendMessage): boolean {
         let permissionSolver = new EventPremissionSolver(event)
+
         if (permissionSolver.userPermission < this.permissionLevel)
             return false
         if (event instanceof FriendMessage) {
@@ -163,7 +169,7 @@ export abstract class Service extends ConfiguredBotObject {
             else
                 enabled = (event.sender.group.id in config['enabled'])
 
-            enabled = enabled && (permissionSolver.groupPermission < this.permissionLevel)
+            enabled = enabled && (permissionSolver.groupPermission >= this.permissionLevel)
             return enabled
         }
     }
@@ -175,37 +181,38 @@ export abstract class Service extends ConfiguredBotObject {
             if (target.length != 0 && !target.includes(event.sender.id)) continue;
 
             let matchRes = event.msgToString().match(service.TextHandlerSetFriend[hash].trigger)
-            if (matchRes === null) return;
-
-            try {
-                if (service.TextHandlerSetFriend[hash].visible)
-                    this.logger.log(`Message ${event.msgId()} matched ${service.TextHandlerSetFriend[hash].trigger.toString()}}`)
-                service.TextHandlerSetFriend[hash].func(service, event, matchRes)
-            } catch (e) {
-                service.logger.error(`Error in ${service.name} FriendResposer ${service.TextHandlerSetFriend[hash].func.name}: ${e}`)
-            } finally {
-                if (service.TextHandlerSetFriend[hash].once) delete service.TextHandlerSetFriend[hash]
-            }
+            if (matchRes) {
+                try {
+                    if (service.TextHandlerSetFriend[hash].visible)
+                        this.logger.success(`Message ${event.msgId()} matched /${chalk.yellow(service.TextHandlerSetFriend[hash].trigger.toString())}/`)
+                    service.TextHandlerSetFriend[hash].func(service, event, matchRes)
+                } catch (e) {
+                    service.logger.error(`Error in ${service.name} FriendResposer ${service.TextHandlerSetFriend[hash].func.name}: ${e}`)
+                } finally {
+                    if (service.TextHandlerSetFriend[hash].once) delete service.TextHandlerSetFriend[hash]
+                }
+            };
         }
     }
     private handleMsgTextGroup = (event: GroupMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
-
         for (let hash in service.TextHandlerSetGroup) {
-            let target = service.TextHandlerSetFriend[hash].target ?? []
-            if (target.length != 0 && !target.includes(event.sender.group.id)) continue;
 
+            let target = service.TextHandlerSetGroup[hash].target ?? []
+            if (target.length != 0 && !target.includes(event.sender.group.id)) continue;
             let matchRes = event.msgToString().match(service.TextHandlerSetGroup[hash].trigger)
-            if (matchRes === null) return;
-            try {
-                if (service.TextHandlerSetGroup[hash].visible)
-                    this.logger.log(`Message ${event.msgId()} matched ${service.TextHandlerSetGroup[hash].trigger.toString()}}`)
-                service.TextHandlerSetGroup[hash].func(service, event, matchRes)
-            } catch (e) {
-                service.logger.error(`Error in ${service.name} GroupResposer ${service.TextHandlerSetGroup[hash].func.name}: ${e}`)
-            } finally {
-                if (service.TextHandlerSetGroup[hash].once) delete service.TextHandlerSetGroup[hash]
+            if (matchRes) {
+                try {
+                    if (service.TextHandlerSetGroup[hash].visible)
+                        this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(service.TextHandlerSetGroup[hash].trigger.toString())}`)
+                    service.TextHandlerSetGroup[hash].func(service, event, matchRes)
+                } catch (e) {
+                    service.logger.error(`Error in ${service.name} GroupResposer ${service.TextHandlerSetGroup[hash].func.name}: ${e}`)
+                } finally {
+                    if (service.TextHandlerSetGroup[hash].once) delete service.TextHandlerSetGroup[hash]
+                }
             }
+
         }
     }
     private handleMsgPartGroup = (event: GroupMessage, service: Service) => {
@@ -218,7 +225,7 @@ export abstract class Service extends ConfiguredBotObject {
 
             try {
                 if (service.PartHandlerSetGroup[partType][hash].visible)
-                    this.logger.log(`Message ${event.msgId()} matched ${partType}}`)
+                    this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(partType)}`)
                 service.PartHandlerSetGroup[partType][hash].func(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetGroup[partType][hash].func.name}: ${e}`)
@@ -238,7 +245,7 @@ export abstract class Service extends ConfiguredBotObject {
 
             try {
                 if (service.PartHandlerSetFriend[partType][hash].visible)
-                    this.logger.log(`Message ${event.msgId()} matched ${partType}}`)
+                    this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(partType)}`)
                 service.PartHandlerSetFriend[partType][hash].func(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetFriend[partType][hash].func.name}: ${e}`)
@@ -255,7 +262,7 @@ export abstract class Service extends ConfiguredBotObject {
 
             try {
                 if (service.AnyHandlerSetGroup[hash].visible)
-                    this.logger.log(`Message ${event.msgId()} matched AnyHandler`)
+                    this.logger.success(`Message ${event.msgId()} matched AnyHandler`)
                 service.AnyHandlerSetGroup[hash].func(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetGroup[hash].func.name}: ${e}`)
@@ -272,7 +279,7 @@ export abstract class Service extends ConfiguredBotObject {
 
             try {
                 if (service.AnyHandlerSetFriend[hash].visible)
-                    this.logger.log(`Message ${event.msgId()} matched AnyHandler`)
+                    this.logger.success(`Message ${event.msgId()} matched AnyHandler`)
                 service.AnyHandlerSetFriend[hash].func(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetFriend[hash].func.name}: ${e}`)
@@ -290,7 +297,7 @@ export abstract class Service extends ConfiguredBotObject {
             this.TextHandlerSetFriend = {}
         }
         let pair = { trigger, func, visible, target, once }
-        let hash = Hash(...Object.values(pair))
+        let hash = Hash(...Object.values(pair), Date.now().toString(),Object.keys(this.TextHandlerSetFriend))
         this.TextHandlerSetFriend[hash] = pair
     }
     onGroupMessageText(
@@ -301,7 +308,7 @@ export abstract class Service extends ConfiguredBotObject {
             this.TextHandlerSetGroup = {}
         }
         let pair = { trigger, func, visible, target, once }
-        let hash = Hash(...Object.values(pair))
+        let hash = Hash(...Object.values(pair), Date.now().toString(),Object.keys(this.TextHandlerSetGroup))
         this.TextHandlerSetGroup[hash] = pair
     }
     onMessageText(
@@ -320,7 +327,7 @@ export abstract class Service extends ConfiguredBotObject {
             this.PartHandlerSetFriend = {}
         }
         let pair = { type, func, visible, target, once }
-        let hash = Hash(...Object.values(pair))
+        let hash = Hash(...Object.values(pair), Date.now().toString(),Object.keys(this.PartHandlerSetFriend))
         this.PartHandlerSetFriend[hash] = pair
     }
     onGroupMessagePart(
@@ -331,7 +338,7 @@ export abstract class Service extends ConfiguredBotObject {
             this.PartHandlerSetGroup = {}
         }
         let pair = { type, func, visible, target, once }
-        let hash = Hash(...Object.values(pair))
+        let hash = Hash(...Object.values(pair), Date.now().toString(),Object.keys(this.PartHandlerSetGroup))
         this.PartHandlerSetGroup[hash] = pair
     }
     onMessagePart(
@@ -350,7 +357,7 @@ export abstract class Service extends ConfiguredBotObject {
             this.AnyHandlerSetFriend = {}
         }
         let pair = { func, visible, target, once }
-        let hash = Hash(...Object.values(pair))
+        let hash = Hash(...Object.values(pair), Date.now().toString(),Object.keys(this.AnyHandlerSetFriend))
         this.AnyHandlerSetFriend[hash] = pair
     }
     onAnyGroupMessage(
@@ -361,7 +368,7 @@ export abstract class Service extends ConfiguredBotObject {
             this.AnyHandlerSetGroup = {}
         }
         let pair = { func, visible, target, once }
-        let hash = Hash(...Object.values(pair))
+        let hash = Hash(...Object.values(pair), Date.now().toString(),Object.keys(this.AnyHandlerSetGroup))
         this.AnyHandlerSetGroup[hash] = pair
     }
     onAnyMessage(

@@ -4,7 +4,8 @@ import * as ws from "ws";
 import { MessageChain } from "./message/index.js";
 import { Hash } from "./utils.js";
 import { GroupPermission, GroupInfo } from "./class.js"
-import { Logger, logger } from "./logger.js";
+import { Logger } from "./logger.js";
+import { NodeBot } from "./bot.js";
 
 enum ApiStatus {
     Normal = 0,
@@ -192,11 +193,14 @@ export class WsApiCaller implements ApiCallerInterface {
     waitList: string[]
     eventEmitter = new events.EventEmitter()
     apiResponseEmitter = new events.EventEmitter()
-    logger: Logger = logger;
+    logger: Logger;
+    bot: NodeBot;
 
-    constructor(connection: ws.WebSocket, selfId: number) {
-        this.connection = connection
-        this.selfId = selfId
+    constructor(bot: NodeBot) {
+        this.bot = bot
+        this.connection = this.bot.adapter.connection
+        this.selfId = this.bot.qq
+        this.logger = this.bot.logger
         this.waitList = []
         this.sessionKey = null
         this.connection.on("message", (event: ws.MessageEvent) => {
@@ -219,7 +223,7 @@ export class WsApiCaller implements ApiCallerInterface {
         if (this.sessionKey !== null && content.hasOwnProperty("sessionKey") && content["sessionKey"] === undefined) {
             content["sessionKey"] = this.sessionKey
         }
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject?) => {
             let syncID = Hash(command, content, subCommand ?? "")
             this.waitList.push(syncID)
             this.logger.info(`[${syncID.substring(0, 6)}] mirai <== call(${command})`)
@@ -231,7 +235,8 @@ export class WsApiCaller implements ApiCallerInterface {
             }
             this.eventEmitter.once(syncID, (data: ApiResponse) => {
                 this.logger.info(`[${syncID.substring(0, 6)}] mirai ==> response{${command},result=${data.code}}`)
-                if (data.code != 0) reject(data); else resolve(data);
+                if (data.code == 0) resolve(data);
+                else try { resolve(data) } finally { }
             })
             this.connection.send(JSON.stringify(data))
         })

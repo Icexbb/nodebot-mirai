@@ -1,8 +1,9 @@
 import { MiraiHttpWsAdapter } from "./adapter.js";
+import { WsApiCaller } from "./api.js";
 import { ConfiguredBotObject } from "./class.js";
-import { Logger, logger } from "./logger.js";
+import { Logger } from "./logger.js";
 import { Service } from "./service/service.js";
-import fs from "fs";
+import * as fs from 'node:fs';
 
 export class NodeBot extends ConfiguredBotObject {
     static GetBot(id?: number | string) {
@@ -16,16 +17,21 @@ export class NodeBot extends ConfiguredBotObject {
         }
     }
     adapter: MiraiHttpWsAdapter;
-    logger: Logger = logger;
+    logger: Logger
     ServiceSet: { [key: string]: Service } = {};
     qq: number
+    api: WsApiCaller
+
 
     constructor(host: string, port: number, qq: number, verifyKey: string) {
         super("bot", "bot");
-        this.logger?.info(`Bot ${qq} connecting to ${host}:${port}`)
+        this.logger = new Logger();
+        this.logger.info(`Bot ${qq} connecting to ${host}:${port}`)
         this.qq = qq
         this.adapter = new MiraiHttpWsAdapter(host, port, qq, verifyKey, this);
         this.adapter.connect().then(() => {
+            this.api = new WsApiCaller(this)
+            this.logger.registerApiCaller(this.api)
             this.adapter.evEmitter.emit("BotConnected")
             this.loadService()
         });
@@ -42,7 +48,8 @@ export class NodeBot extends ConfiguredBotObject {
             this.importService(service).then(() => {
                 this.logger.success(`Service ${service} loaded`)
             }, (err) => {
-                this.logger.error(`Service ${service} load failed: ${err}`)
+                this.logger.error(`Service ${service} load failed: ${err}\n`)
+                console.log(err)
             })
         });
     }

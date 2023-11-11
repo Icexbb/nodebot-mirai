@@ -3,7 +3,7 @@ import { MessageSegmentTypes } from "../../src/message/index.js";
 
 class ServiceTemplate extends Service {
     constructor() {
-        super("Template", { enabledDefault: false })
+        super("template", { enabledDefault: false })
         this.visible = false
     }
     registerResponser() {

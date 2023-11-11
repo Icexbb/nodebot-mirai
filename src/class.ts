@@ -1,4 +1,4 @@
-import fs from "fs"
+import * as fs from 'node:fs';
 
 export class FriendInfo {
     id: number
@@ -56,8 +56,6 @@ export class ConfiguredBotObject {
     }
     protected constructor(name: string, type: string = "service") {
         this.type = type
-        if (this.type=== "bot") global.logger?.info(`Loading Bot Config`)
-
         if (!this.NameIsValide(name)) throw new Error(`Object name ${name} is not valide`)
         this.name = name;
         this.configPath = ConfiguredBotObject.fromConfigRoot(`${this.name}.json`);
@@ -73,26 +71,25 @@ export class ConfiguredBotObject {
                     case "bigint": config[key] = 0; break;
                     case "boolean": config[key] = false; break;
                     case "object": config[key] = {}; break;
-                    // case "function":config[key]={}; break;
-                    // case "symbol":config[key]={}; break;
-                    // case "undefined": config[key] = null; break;
                 }
             }
         }
-        this.setConfig(config);
+        this.setConfig(config, true);
     }
     initConfig() {
         if (!fs.existsSync(this.configPath)) this.createConfig();
-        else
+        else {
             try {
                 JSON.parse(fs.readFileSync(this.configPath).toString());
             } catch {
                 this.createConfig();
             }
+        }
     }
-    setConfig(config: object) { fs.writeFileSync(this.configPath, JSON.stringify(config)); }
+    setConfig(config: object, force: boolean = false) {
+        fs.writeFileSync(this.configPath, JSON.stringify(config, null, 4))
+    }
     getConfig() {
-        this.initConfig();
         return JSON.parse(fs.readFileSync(this.configPath).toString());
     }
 }

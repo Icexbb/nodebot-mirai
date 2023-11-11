@@ -5,7 +5,8 @@ import { WsApiCaller } from './api.js';
 import { NewSegment } from './message/index.js';
 
 let rl = readLine.createInterface({
-    input: process.stdin, output: process.stdout, tabSize: 4, prompt: "", historySize: 0
+    input: process.stdin, output: process.stdout,
+    tabSize: 4, prompt: "", historySize: 0
 })
 rl.prompt(false)
 rl.on('close', () => { process.exit(0); });
@@ -16,9 +17,11 @@ class Logger {
     command: events.EventEmitter = new events.EventEmitter()
     apiCaller: WsApiCaller
     readLineInterface = rl
-    constructor() {
+    level: number;
+    constructor(level: number = 2) {
         this.buffer = [];
-        this.lastLineIsCommand = false
+        this.lastLineIsCommand = false;
+        this.level = level;
         process.stdin.on('data', (data) => {
             let char = data.toString()
             switch (char) {
@@ -124,18 +127,23 @@ class Logger {
         });
         return msg.join(" ")
     }
-    log_ = (prefix?: string, ...message: any[]) => {
-        let msg = Logger.stringify(...message)
-        msg.split("\n").forEach((element) => { Logger.write(prefix + element + "\n") })
-        if (msg !== "exit") { this.prompt() }
+    private log_ = (level: number, prefix: string, ...message: any[]) => {
+        if (level >= this.level) {
+            let msg = Logger.stringify(...message)
+            msg.split("\n").forEach((element) => { Logger.write(element + "\n") })
+            if (msg !== "exit") { this.prompt() }
+        }
     }
-    log = (...message: any[]) => { this.log_("", ...message) }
-    success = (...message: any[]) => { this.log_(chalk.bold.green('SUCCESS') + " | ", ...message) }
-    info = (...message: any[]) => { this.log_(chalk.bold.white('INFO') + " | ", ...message) }
-    warn = (...message: any[]) => { this.log_(chalk.bold.yellow('WARN') + " | ", ...message) }
-    error = (...message: any[]) => { this.log_(chalk.bold.red('ERROR') + " | ", ...message) }
-    debug = (...message: any[]) => { this.log_(chalk.bold.magenta('DEBUG') + " | ", ...message) }
-    console = (...message: any[]) => { this.log_(chalk.bold.cyan('CONSOLE') + " | ", ...message) }
+    log = (...message: any[]) => { this.log_(0, "", ...message) }
+    debug = (...message: any[]) => { this.log_(1, chalk.bold.magenta('DEBUG') + " | ", ...message) }
+
+    info = (...message: any[]) => { this.log_(2, chalk.bold.white('INFO') + " | ", ...message) }
+    console = (...message: any[]) => { this.log_(3, chalk.bold.cyan('CONSOLE') + " | ", ...message) }
+    success = (...message: any[]) => { this.log_(4, chalk.bold.green('SUCCESS') + " | ", ...message) }
+
+    warn = (...message: any[]) => { this.log_(5, chalk.bold.yellow('WARN') + " | ", ...message) }
+    error = (...message: any[]) => { this.log_(6, chalk.bold.red('ERROR') + " | ", ...message) }
+
     prompt = () => { Logger.write(">>> " + this.buffer?.join("")) }
     static write(str: string) {
         let time = new Date().toLocaleString()
@@ -143,5 +151,4 @@ class Logger {
     }
 
 }
-var logger = new Logger()
-export { Logger, logger }
+export { Logger }
