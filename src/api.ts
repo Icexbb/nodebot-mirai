@@ -6,6 +6,7 @@ import { Hash } from "./utils.js";
 import { GroupPermission, GroupInfo } from "./class.js"
 import { Logger } from "./logger.js";
 import { NodeBot } from "./bot.js";
+import chalk from "chalk";
 
 enum ApiStatus {
     Normal = 0,
@@ -198,7 +199,7 @@ export class WsApiCaller implements ApiCallerInterface {
 
     constructor(bot: NodeBot) {
         this.bot = bot
-        this.connection = this.bot.adapter.connection
+        this.connection = this.bot.connection
         this.selfId = this.bot.qq
         this.logger = this.bot.logger
         this.waitList = []
@@ -220,13 +221,21 @@ export class WsApiCaller implements ApiCallerInterface {
     }
 
     makeApiCall(command: string, content: object, subCommand?: string): Promise<ApiResponseTypes> {
+        let syncID = Hash(command, content, subCommand ?? "")
+
         if (this.sessionKey !== null && content.hasOwnProperty("sessionKey") && content["sessionKey"] === undefined) {
             content["sessionKey"] = this.sessionKey
         }
-        return new Promise((resolve, reject?) => {
-            let syncID = Hash(command, content, subCommand ?? "")
+        const defaultApiResolve = (data: ApiResponseTypes) => {
+            this.logger.error(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.green(data['code'])} `)
+        }
+        const defaultApiRejection = (data: ApiResponseTypes) => {
+            this.logger.info(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.red(data['code'])}`)
+        }
+
+        return new Promise((resolve = defaultApiResolve, reject = defaultApiRejection) => {
             this.waitList.push(syncID)
-            this.logger.info(`[${syncID.substring(0, 6)}] mirai <== call(${command})`)
+            this.logger.info(`API | ${chalk.cyan(syncID.substring(0, 6))} | CALL ${chalk.bold.yellowBright(command)}`)
             const data = {
                 syncId: syncID,
                 command: command,
@@ -234,9 +243,8 @@ export class WsApiCaller implements ApiCallerInterface {
                 content: content
             }
             this.eventEmitter.once(syncID, (data: ApiResponse) => {
-                this.logger.info(`[${syncID.substring(0, 6)}] mirai ==> response{${command},result=${data.code}}`)
                 if (data.code == 0) resolve(data);
-                else try { resolve(data) } finally { }
+                else reject(data);
             })
             this.connection.send(JSON.stringify(data))
         })

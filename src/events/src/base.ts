@@ -72,6 +72,8 @@ abstract class MessageEvent extends BaseEvent {
     messageChain: MessageSegment[]
     rawMessage: object
 
+    nameMaxLen: number = 16
+
     protected constructor(event: object) {
         super(event);
         this.messageChain = GetMessage(event['messageChain'])
@@ -97,6 +99,7 @@ abstract class MessageEvent extends BaseEvent {
         }
         return true;
     }
+    abstract senderInfoLog(): string
     isToMe() {
         return this.messageChain.some((item) => {
             switch (item.type) {

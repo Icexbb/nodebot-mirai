@@ -1,6 +1,8 @@
 
+import chalk from "chalk";
 import { FriendInfo, GroupInfo, GroupMemberInfo, ClientInfo } from "../../class.js";
 import { MessageEvent } from "./base.js";
+import { FixedString } from "../../utils.js";
 
 type FriendSender = FriendInfo
 type StrangerSender = FriendSender
@@ -18,21 +20,33 @@ class FriendMessage extends MessageEvent {
         super(event);
         this.sender = event['sender']
     }
+    senderInfoLog(): string {
+        let nickname = this.sender.nickname
+        nickname = FixedString(nickname, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.sender.id)})]`
+    }
     toLog(): string {
-        return `<== ${this.msgId()} [${this.sender.nickname}(${this.sender.id})]: ${this.msgToString()}`
+        return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
+
     }
 }
 
 class GroupMessage extends MessageEvent {
-
     sender: GroupSender
 
     constructor(event: object) {
         super(event);
         this.sender = event['sender']
     }
+    senderInfoLog(): string {
+        let nickname = this.sender.memberName
+        nickname = FixedString(nickname, this.nameMaxLen)
+        let groupName = this.sender.group.name
+        groupName = FixedString(groupName, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.sender.id)}) in ${groupName}(${chalk.dim(this.sender.group.id)})]`
+    }
     toLog(): string {
-        return `<== ${this.msgId()} [${this.sender.memberName}(${this.sender.id}) in ${this.sender.group.name}(${this.sender.group.id})]: ${this.msgToString()}`
+        return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
     }
 }
 
@@ -43,8 +57,13 @@ class StrangerMessage extends MessageEvent {
         super(event);
         this.sender = event['sender']
     }
+    senderInfoLog(): string {
+        let nickname = this.sender.nickname
+        nickname = FixedString(nickname, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.sender.id)})]`
+    }
     toLog(): string {
-        return `<== ${this.msgId()} [${this.sender.nickname}(${this.sender.id})]: ${this.msgToString()}`
+        return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
     }
 }
 
@@ -55,8 +74,15 @@ class TempMessage extends MessageEvent {
         super(event);
         this.sender = event['sender']
     }
+    senderInfoLog(): string {
+        let nickname = this.sender.memberName
+        nickname = FixedString(nickname, this.nameMaxLen)
+        let groupName = this.sender.group.name
+        groupName = FixedString(groupName, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.sender.id)}) in ${groupName}(${chalk.dim(this.sender.group.id)})]`
+    }
     toLog(): string {
-        return `<== ${this.msgId()} [${this.sender.memberName}(${this.sender.id}) in ${this.sender.group.name}(${this.sender.group.id})]: ${this.msgToString()}`
+        return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
     }
 }
 
@@ -67,8 +93,11 @@ class OtherClientMessage extends MessageEvent {
         super(event);
         this.sender = event['sender']
     }
+    senderInfoLog(): string {
+        return `[${this.sender.platform}]`
+    }
     toLog(): string {
-        return `<== ${this.msgId()} [${this.sender.platform}]: ${this.msgToString()}`
+        return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
     }
 }
 
@@ -88,8 +117,13 @@ class FriendSyncMessage extends SyncMessageEvent {
         super(event);
         this.subject = event['subject']
     }
+    senderInfoLog(): string {
+        let nickname = this.subject.nickname
+        nickname = FixedString(nickname, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.subject.id)})]`
+    }
     toLog(): string {
-        return `==> ${this.msgId()} [${this.subject.nickname}(${this.subject.id})]=> ${this.msgToString()}`
+        return `[${this.subject.nickname}(${this.subject.id})]${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
     }
 }
 
@@ -100,8 +134,13 @@ class GroupSyncMessage extends SyncMessageEvent {
         super(event);
         this.subject = event['subject']
     }
+    senderInfoLog(): string {
+        let groupName = this.subject.name
+        groupName = FixedString(groupName, this.nameMaxLen)
+        return `[${groupName}(${chalk.dim(this.subject.id)})]`
+    }
     toLog(): string {
-        return `==> ${this.msgId()} [${this.subject.name}(${this.subject.id})]=> ${this.msgToString()}`
+        return `${this.senderInfoLog()} <${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
     }
 }
 
@@ -112,8 +151,15 @@ class TempSyncMessage extends SyncMessageEvent {
         super(event);
         this.subject = event['subject']
     }
+    senderInfoLog(): string {
+        let nickname = this.subject.memberName
+        nickname = FixedString(nickname, this.nameMaxLen)
+        let groupName = this.subject.group.name
+        groupName = FixedString(groupName, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.subject.id)}) in ${groupName}(${chalk.dim(this.subject.group.id)})]`
+    }
     toLog(): string {
-        return `==> ${this.msgId()} [${this.subject.memberName}(${this.subject.id}) in ${this.subject.group.name}(${this.subject.group.id})]=> ${this.msgToString()}`
+        return `${this.senderInfoLog()} <${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
     }
 }
 
@@ -124,8 +170,13 @@ class StrangerSyncMessage extends SyncMessageEvent {
         super(event);
         this.subject = event['subject']
     }
+    senderInfoLog(): string {
+        let nickname = this.subject.nickname
+        nickname = FixedString(nickname, this.nameMaxLen)
+        return `[${nickname}(${chalk.dim(this.subject.id)})]`
+    }
     toLog(): string {
-        return `==> ${this.msgId()} [${this.subject.nickname}(${this.subject.id})]=> ${this.msgToString()}`
+        return `${this.senderInfoLog()} <${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
     }
 }
 

@@ -130,7 +130,7 @@ class Logger {
     private log_ = (level: number, prefix: string, ...message: any[]) => {
         if (level >= this.level) {
             let msg = Logger.stringify(...message)
-            msg.split("\n").forEach((element) => { Logger.write(element + "\n") })
+            msg.split("\n").forEach((element) => { Logger.write(prefix + element + "\n") })
             if (msg !== "exit") { this.prompt() }
         }
     }
