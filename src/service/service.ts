@@ -53,6 +53,8 @@ export abstract class Service extends ConfiguredBotObject {
     AnyHandlerSetGroup: { [key: string]: AnyHandlerObjGroup };
     AnyHandlerSetFriend: { [key: string]: AnyHandlerObjFriend };
 
+    FChannel: string
+    GChannel: string
     msgEventEmitter: EventEmitter
     abstract registerResponser(): void
 
@@ -101,13 +103,29 @@ export abstract class Service extends ConfiguredBotObject {
         (servHelps.filter((item) => item != "") ?? ["暂无"]).forEach((item) => { helpMsg += item + "\n" })
         return helpMsg.trim()
     }
-    regServiceName() {
-        return this.alias == "" ? this.name : `${this.name}|${this.alias}`
-    }
+    regServiceName = () => this.alias == "" ? this.name : `${this.name}|${this.alias}`
+
     registerBot(bot: NodeBot) {
         this.bot = bot
         this.logger = this.bot.logger
+        this.load()
+    }
+    private initEventEmitter() {
+        this.msgEventEmitter = new EventEmitter()
+        let FChannel = this.FChannel
+        let GChannel = this.GChannel
 
+        this.bot.miraiEvent.on("FriendMessage", (event) => { this.msgEventEmitter.emit(FChannel, event) })
+        this.msgEventEmitter.on(FChannel, (miraiEvent) => { this.handleMsgTextFriend(miraiEvent, this) })
+        this.msgEventEmitter.on(FChannel, (miraiEvent) => { this.handleMsgPartFriend(miraiEvent, this) })
+        this.msgEventEmitter.on(FChannel, (miraiEvent) => { this.handleMsgAnyFriend(miraiEvent, this) })
+
+        this.bot.miraiEvent.on("GroupMessage", (event) => { this.msgEventEmitter.emit(GChannel, event) })
+        this.msgEventEmitter.on(GChannel, (miraiEvent) => { this.handleMsgTextGroup(miraiEvent, this) })
+        this.msgEventEmitter.on(GChannel, (miraiEvent) => { this.handleMsgPartGroup(miraiEvent, this) })
+        this.msgEventEmitter.on(GChannel, (miraiEvent) => { this.handleMsgAnyGroup(miraiEvent, this) })
+    }
+    private registerInternalResponser() {
         this.onGroupMessageText(new RegExp(`^(开启|启用|打开)(${this.regServiceName()})`), function EnableService(service, event) {
             if (event.sender.permission == GroupPermission.MEMBER) return;
             let group = event.sender.group.id
@@ -141,23 +159,30 @@ export abstract class Service extends ConfiguredBotObject {
             let msg = [NewSegment.Plain(helpMsg.trim())]
             service.bot.api.SendGroupMessage(msg, event.sender.group.id, event.sender.group.id, event.msgId())
         }, false)
-
+    }
+    public load() {
+        this.FChannel = `F-${this.bot.qq}-${this.name}-${Date.now()}`
+        this.GChannel = `G-${this.bot.qq}-${this.name}-${Date.now()}`
         this.initEventEmitter()
+        this.registerInternalResponser()
         this.registerResponser()
     }
-    private initEventEmitter() {
-        this.bot.miraiEvent.on("FriendMessage", (event) => { this.msgEventEmitter.emit("FriendMessage", event) })
-        this.bot.miraiEvent.on("GroupMessage", (event) => { this.msgEventEmitter.emit("GroupMessage", event) })
 
-        this.msgEventEmitter = new EventEmitter()
-        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgTextFriend(miraiEvent, this) })
-        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgTextGroup(miraiEvent, this) })
-
-        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgPartGroup(miraiEvent, this) })
-        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgPartFriend(miraiEvent, this) })
-
-        this.msgEventEmitter.on("GroupMessage", (miraiEvent) => { this.handleMsgAnyGroup(miraiEvent, this) })
-        this.msgEventEmitter.on("FriendMessage", (miraiEvent) => { this.handleMsgAnyFriend(miraiEvent, this) })
+    public unload() {
+        let FChannel = this.FChannel
+        let GChannel = this.GChannel
+        this.bot.miraiEvent.removeListener("FriendMessage", (event) => { this.msgEventEmitter.emit(FChannel, event) })
+        this.bot.miraiEvent.removeListener("GroupMessage", (event) => { this.msgEventEmitter.emit(GChannel, event) })
+        this.msgEventEmitter.removeAllListeners()
+        this.TextHandlerSetFriend = {}
+        this.TextHandlerSetGroup = {}
+        this.TimeHandlerSet = {}
+        this.PartHandlerSetGroup = {}
+        this.PartHandlerSetFriend = {}
+        this.AnyHandlerSetGroup = {}
+        this.AnyHandlerSetFriend = {}
+        this.bot = undefined
+        this.logger = undefined
     }
     private checkEnabled(event: GroupMessage | FriendMessage): boolean {
         let permissionSolver = new EventPremissionSolver(event)

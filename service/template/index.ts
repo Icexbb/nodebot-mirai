@@ -15,5 +15,4 @@ class ServiceTemplate extends Service {
         this.onGroupMessagePart(MessageSegmentTypes.Image, (service, event) => { })
     }
 }
-const service = new ServiceTemplate()
-export default service;
+export default ServiceTemplate;

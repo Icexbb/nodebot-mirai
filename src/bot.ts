@@ -108,6 +108,22 @@ export class NodeBot extends ConfiguredBotObject {
         if (global.bot === undefined) global.bot = {} as { [key: string]: NodeBot }
         if (global.bot[this.qq.toString()] === undefined) global.bot[this.qq.toString()] = this
     }
+    importService(service: any): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (this.ServiceSet[service]) reject(new Error(`Service ${service} already loaded`))
+            let path = `${process.cwd()}/service/${service}/index.js`
+            if (!fs.existsSync(path)) path = `${process.cwd()}/service/${service}.js`
+            if (!fs.existsSync(path)) reject(new Error(`Service ${service} Source not found`))
+
+            import("file:///" + path).then((module) => {
+                let sv = new module.default()
+                if (sv instanceof Service) {
+                    this.registerService(service, sv)
+                    resolve()
+                } else reject(new Error(`Service ${service} is not a Service`))
+            }).catch((err) => { reject(err) })
+        })
+    }
     loadService() {
         let config = this.getConfig()
         if (!config['services']) config['services'] = []
@@ -115,41 +131,29 @@ export class NodeBot extends ConfiguredBotObject {
             this.importService(service).then(() => {
                 this.logger.success(`Service | Loaded ${chalk.bold.green(service.toUpperCase())}`)
             }, (err) => {
-                this.logger.error(`Service | Load ${chalk.bold.red(service.toUpperCase())} Failed: ${err}\n`)
-                console.log(err, "\n")
+                this.logger.error(`Service | Load ${chalk.bold.red(service.toUpperCase())} Failed: ${err}\n${err.stack}`)
             })
         });
-    }
-    importService(service: any): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (this.ServiceSet[service]) reject(`Service ${service} already loaded`)
-            let path = `${process.cwd()}/service/${service}/index.js`
-            if (!fs.existsSync(path)) path = `${process.cwd()}/service/${service}.js`
-            if (!fs.existsSync(path)) reject(`Service ${service} Source not found`)
-
-            import("file:///" + path).then((module) => {
-                if (module.default instanceof Service) {
-                    this.registerService(service, module.default)
-                    resolve()
-                } else reject(`Service ${service} is not a Service`)
-            }).catch((err) => { reject(err) })
-        })
-    }
-    reloadService(service: string) {
-        this.ServiceSet[service] = undefined
-        this.importService(service).then(() => {
-            this.logger.success(`Service | Reloaded ${chalk.bold.green(service.toUpperCase())}`)
-        }, (err) => {
-            this.logger.error(`Service | Reload ${chalk.bold.red(service.toUpperCase())} Failed: ${err}\n`)
-            console.log(err, "\n")
-        })
-    }
-    reloadAllService() {
-        this.ServiceSet={}
-        this.loadService()
     }
     registerService(name: string, service: Service) {
         this.ServiceSet[name] = service;
         this.ServiceSet[name].registerBot(this);
+    }
+    unloadService(service: string) {
+        this.ServiceSet[service].unload();
+        delete this.ServiceSet[service];
+    }
+    reloadService(service: string) {
+        this.unloadService(service)
+        this.importService(service).then(() => {
+            this.logger.success(`Service | Reloaded ${chalk.bold.green(service.toUpperCase())}`)
+        }, (err) => {
+            this.logger.error(`Service | Reload ${chalk.bold.red(service.toUpperCase())} Failed: ${err}\n${err.stack}`)
+        })
+    }
+    reloadAllService() {
+        for (const service in this.ServiceSet) {
+            this.reloadService(service)
+        }
     }
 }
