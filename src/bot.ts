@@ -90,12 +90,12 @@ export class NodeBot extends ConfiguredBotObject {
 
     constructor(host: string, port: number, qq: number, verifyKey: string) {
         super("bot", "bot");
-        this.logger = new Logger();
-        this.logger.info(`Bot | ${qq} connecting to ${host}:${port}`)
         this.qq = qq
         this.host = host
         this.port = port
         this.verifyKey = verifyKey
+        this.logger = new Logger(this);
+        this.logger.info(`Bot | ${qq} connecting to ${host}:${port}`)
         this.connect().then(() => {
             this.api = new WsApiCaller(this)
             this.logger.registerApiCaller(this.api)
@@ -120,7 +120,7 @@ export class NodeBot extends ConfiguredBotObject {
             })
         });
     }
-    async importService(service: any): Promise<void> {
+    importService(service: any): Promise<void> {
         return new Promise((resolve, reject) => {
             if (this.ServiceSet[service]) reject(`Service ${service} already loaded`)
             let path = `${process.cwd()}/service/${service}/index.js`
@@ -134,6 +134,19 @@ export class NodeBot extends ConfiguredBotObject {
                 } else reject(`Service ${service} is not a Service`)
             }).catch((err) => { reject(err) })
         })
+    }
+    reloadService(service: string) {
+        this.ServiceSet[service] = undefined
+        this.importService(service).then(() => {
+            this.logger.success(`Service | Reloaded ${chalk.bold.green(service.toUpperCase())}`)
+        }, (err) => {
+            this.logger.error(`Service | Reload ${chalk.bold.red(service.toUpperCase())} Failed: ${err}\n`)
+            console.log(err, "\n")
+        })
+    }
+    reloadAllService() {
+        this.ServiceSet={}
+        this.loadService()
     }
     registerService(name: string, service: Service) {
         this.ServiceSet[name] = service;

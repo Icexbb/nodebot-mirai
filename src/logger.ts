@@ -1,8 +1,11 @@
 import readLine from 'readline';
 import chalk from 'chalk';
 import events from 'events';
+import fs from 'fs';
+import path from 'path';
 import { WsApiCaller } from './api.js';
 import { NewSegment } from './message/index.js';
+import { NodeBot } from './bot.js';
 
 let rl = readLine.createInterface({
     input: process.stdin, output: process.stdout,
@@ -17,11 +20,16 @@ class Logger {
     command: events.EventEmitter = new events.EventEmitter()
     apiCaller: WsApiCaller
     readLineInterface = rl
-    level: number;
-    constructor(level: number = 2) {
+    consoleLevel: number;
+    bot: NodeBot;
+    recordLevel: number;
+    logFileName: string;
+    constructor(bot: NodeBot, level: number = 2, recordLevel: number = 3) {
         this.buffer = [];
         this.lastLineIsCommand = false;
-        this.level = level;
+        this.consoleLevel = level;
+        this.recordLevel = recordLevel;
+        this.bot = bot
         process.stdin.on('data', (data) => {
             let char = data.toString()
             switch (char) {
@@ -88,10 +96,26 @@ class Logger {
             }
             let msg = [NewSegment.Plain(args.slice(1).join(" "))]
             this.apiCaller.makeApiCall("sendGroupMessage", { messageChain: msg, target: group, group: group })
-
         }
         // const consoleService = function (...args: string[]) {}
         const consoleHelp = function (...args: string[]) { }
+        const consoleReload = function (...args: string[]) {
+            if (args.length === 0) {
+                this.console("Usage: reload <group> [message...]")
+                return
+            }
+            if (args[0] === "all") {
+                this.bot.reloadAllService()
+                return
+            }
+            for (let sv of args) {
+                if (this.bot.ServiceSet[sv] === undefined) {
+                    this.console(`Service ${sv} not found`)
+                } else {
+                    this.bot.ServiceSet[sv].reload()
+                }
+            }
+        }
 
         this.command.on("line", (line: string[]) => {
             switch (line[0].toLowerCase().trim()) {
@@ -103,6 +127,7 @@ class Logger {
                 case "help": consoleHelp.apply(this, line.slice(1)); break;
                 case "reply": consoleReply.apply(this, line.slice(1)); break;
                 case "send": consoleSend.apply(this, line.slice(1)); break;
+                case "reload": consoleReload.apply(this, line.slice(1)); break;
                 case "": break;
                 default: this.console(`Unknown Command: ${line[0].trim()}`); break;
             }
@@ -128,27 +153,53 @@ class Logger {
         return msg.join(" ")
     }
     private log_ = (level: number, prefix: string, ...message: any[]) => {
-        if (level >= this.level) {
-            let msg = Logger.stringify(...message)
-            msg.split("\n").forEach((element) => { Logger.write(prefix + element + "\n") })
-            if (msg !== "exit") { this.prompt() }
-        }
+        let msg = Logger.stringify(...message)
+        msg.split("\n").forEach((element) => { this.write(level, prefix + element + "\n") })
+        if (msg !== "exit") { this.prompt() }
     }
     log = (...message: any[]) => { this.log_(0, "", ...message) }
     debug = (...message: any[]) => { this.log_(1, chalk.bold.magenta('DEBUG') + " | ", ...message) }
 
-    info = (...message: any[]) => { this.log_(2, chalk.bold.white('INFO') + " | ", ...message) }
-    console = (...message: any[]) => { this.log_(3, chalk.bold.cyan('CONSOLE') + " | ", ...message) }
+    console = (...message: any[]) => { this.log_(2, chalk.bold.cyan('CONSOLE') + " | ", ...message) }
+
+    info = (...message: any[]) => { this.log_(3, chalk.bold.white('INFO') + " | ", ...message) }
     success = (...message: any[]) => { this.log_(4, chalk.bold.green('SUCCESS') + " | ", ...message) }
 
     warn = (...message: any[]) => { this.log_(5, chalk.bold.yellow('WARN') + " | ", ...message) }
     error = (...message: any[]) => { this.log_(6, chalk.bold.red('ERROR') + " | ", ...message) }
 
-    prompt = () => { Logger.write(">>> " + this.buffer?.join("")) }
-    static write(str: string) {
+    prompt = () => { this.write(this.consoleLevel, ">>> " + this.buffer?.join("")) }
+    write(level: number, str: string) {
+        if (level < this.consoleLevel) return;
         let time = new Date().toLocaleString()
-        process.stdout.write(`\r` + chalk.blue(`${time}`) + chalk.bold(' | ') + `${str}`)
-    }
+        let msg = `\r` + chalk.blue(`${time}`) + chalk.bold(' | ') + `${str}`
+        process.stdout.write(msg)
+        if (level < this.recordLevel) return;
+        let logFile = this.getLogFilePath()
 
+        fs.appendFileSync(logFile, (msg.trim() + "\n").replaceAll(this.colorEscape, ""))
+    }
+    colorEscape = /\x1B[@-_][0-?]*[ -/]*[@-~]/g
+    getLogFilePath() {
+        let logFilePath = path.join(process.cwd(), "logs");
+        fs.mkdirSync(logFilePath, { recursive: true })
+
+        let time = new Date().toLocaleString()
+        let logFileDate = time.replaceAll('/', '-').split(" ")[0]
+
+        let filename: string;
+        if (this.logFileName === undefined) {
+            let logFileNum = fs.readdirSync(logFilePath).filter((file) => file.startsWith(logFileDate)).length
+            filename = `${logFileDate}_${logFileNum}.log`
+        }
+        else {
+            if (this.logFileName.startsWith(logFileDate)) filename = this.logFileName
+            else filename = `${logFileDate}_${0}.log`
+        }
+
+        this.logFileName = filename
+        let logFile = path.join(logFilePath, filename)
+        return logFile
+    }
 }
 export { Logger }

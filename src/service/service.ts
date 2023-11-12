@@ -9,8 +9,9 @@ import { MessageChain, MessageSegmentTypes, NewSegment } from "../message/index.
 import { Hash } from "../utils.js";
 import { Logger } from "../logger.js";
 import { EventEmitter } from "events";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import path from "path";
+// import { dirname } from "node:path";
+// import { fileURLToPath } from "node:url";
 
 type TextHandlerFuncFriend = (service: Service, event: FriendMessage, matchRes: RegExpExecArray | RegExpMatchArray) => void
 type TextHandlerFuncGroup = (service: Service, event: GroupMessage, matchRes: RegExpExecArray | RegExpMatchArray) => void
@@ -72,7 +73,7 @@ export abstract class Service extends ConfiguredBotObject {
         this.TimeHandlerSet = {}
     }
     serviceDir() {
-        return dirname(fileURLToPath(import.meta.url));
+        return path.resolve(process.cwd(), 'service', this.name)
     }
     reply(event: FriendMessage | GroupMessage, message: MessageChain, quote: boolean = true) {
         if (event instanceof FriendMessage) {
@@ -193,7 +194,7 @@ export abstract class Service extends ConfiguredBotObject {
                         this.logger.success(`Message ${event.msgId()} matched /${chalk.yellow(service.TextHandlerSetFriend[hash].trigger.toString())}/`)
                     service.TextHandlerSetFriend[hash].func.bind(service)(service, event, matchRes)
                 } catch (e) {
-                    service.logger.error(`Error in ${service.name} FriendResposer ${service.TextHandlerSetFriend[hash].func.name}: ${e}`)
+                    service.logger.error(`Error in ${service.name} FriendResposer ${service.TextHandlerSetFriend[hash].func.name}: ${e}\n${e.stack}`)
                 } finally {
                     if (service.TextHandlerSetFriend[hash].once) delete service.TextHandlerSetFriend[hash]
                 }
@@ -213,7 +214,7 @@ export abstract class Service extends ConfiguredBotObject {
                         this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(service.TextHandlerSetGroup[hash].trigger.toString())}`)
                     service.TextHandlerSetGroup[hash].func.bind(service)(service, event, matchRes)
                 } catch (e) {
-                    service.logger.error(`Error in ${service.name} GroupResposer ${service.TextHandlerSetGroup[hash].func.name}: ${e}`)
+                    service.logger.error(`Error in ${service.name} GroupResposer ${service.TextHandlerSetGroup[hash].func.name}: ${e}\n${e.stack}`)
                 } finally {
                     if (service.TextHandlerSetGroup[hash].once) delete service.TextHandlerSetGroup[hash]
                 }
@@ -234,7 +235,7 @@ export abstract class Service extends ConfiguredBotObject {
                     this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(partType)}`)
                 service.PartHandlerSetGroup[partType][hash].func.bind(service)(service, event)
             } catch (e) {
-                service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetGroup[partType][hash].func.name}: ${e}`)
+                service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetGroup[partType][hash].func.name}: ${e}\n${e.stack}`)
             } finally {
                 if (service.PartHandlerSetGroup[partType][hash].once) delete service.PartHandlerSetGroup[partType][hash]
             }
@@ -254,7 +255,7 @@ export abstract class Service extends ConfiguredBotObject {
                     this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(partType)}`)
                 service.PartHandlerSetFriend[partType][hash].func.bind(service)(service, event)
             } catch (e) {
-                service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetFriend[partType][hash].func.name}: ${e}`)
+                service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetFriend[partType][hash].func.name}: ${e}\n${e.stack}`)
             } finally {
                 if (service.PartHandlerSetFriend[partType][hash].once) delete service.PartHandlerSetFriend[partType][hash]
             }
@@ -271,7 +272,7 @@ export abstract class Service extends ConfiguredBotObject {
                     this.logger.success(`Message ${event.msgId()} matched AnyHandler`)
                 service.AnyHandlerSetGroup[hash].func.bind(service)(service, event)
             } catch (e) {
-                service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetGroup[hash].func.name}: ${e}`)
+                service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetGroup[hash].func.name}\n${e.stack}`)
             } finally {
                 if (service.AnyHandlerSetGroup[hash].once) delete service.AnyHandlerSetGroup[hash]
             }
@@ -288,7 +289,7 @@ export abstract class Service extends ConfiguredBotObject {
                     this.logger.success(`Message ${event.msgId()} matched AnyHandler`)
                 service.AnyHandlerSetFriend[hash].func.bind(service)(service, event)
             } catch (e) {
-                service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetFriend[hash].func.name}: ${e}`)
+                service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetFriend[hash].func.name}: ${e}\n${e.stack}`)
             } finally {
                 if (service.AnyHandlerSetFriend[hash].once) delete service.AnyHandlerSetFriend[hash]
             }

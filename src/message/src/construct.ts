@@ -67,7 +67,7 @@ export abstract class NewSegment {
             base64 = fs.readFileSync(path).toString("base64")
         }
         if (base64) { voiceId = null; url = null; path = null; }
-        return new Segments.Image({ type: "Voice", voiceId, url, path, base64 })
+        return new Segments.Voice({ type: "Voice", voiceId, url, path, base64 })
     }
     static MusicShare(
         kind: string, title: string, summary: string, jumpUrl: string,
