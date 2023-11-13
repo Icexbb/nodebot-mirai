@@ -76,3 +76,5 @@ service/**
 run.ts
 run.js
 run.js.map
+
+*.bat
