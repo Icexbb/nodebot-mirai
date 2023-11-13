@@ -1,14 +1,27 @@
 abstract class MessageSegment {
     public type: string
+    protected data: object
 
     protected constructor(segment: object) {
         this.type = segment['type']
+        this.data = segment
     }
 
     abstract toLog(): string
     abstract equals(other: MessageSegment): boolean
 }
 
+class NotImplementSegment extends MessageSegment {
+    constructor(segment: object) {
+        super(segment)
+    }
+    toLog(): string {
+        return `[NotImplemented: ${JSON.stringify(this.data)}]`
+    }
+    equals(other: MessageSegment): boolean {
+        return this.toLog() == other.toLog()
+    }
+}
 interface EncodeAbleMessage {
     ToMiraiCode(): string
 }

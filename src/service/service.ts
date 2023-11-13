@@ -77,11 +77,12 @@ export abstract class Service extends ConfiguredBotObject {
     serviceDir() {
         return path.resolve(process.cwd(), 'service', this.name)
     }
-    reply(event: FriendMessage | GroupMessage, message: MessageChain, quote: boolean = true) {
+    reply(event: FriendMessage | GroupMessage, message: MessageChain | string, quote: boolean = true) {
+        if (typeof message == "string") message = [NewSegment.Plain(message)]
         if (event instanceof FriendMessage) {
-            this.bot.api.SendFriendMessage(message, event.sender.id, quote ? event.msgId() : null)
+            return this.bot.api.SendFriendMessage(message, event.sender.id, quote ? event.msgId() : null)
         } else {
-            this.bot.api.SendGroupMessage(message, event.sender.group.id, event.sender.id, quote ? event.msgId() : null)
+            return this.bot.api.SendGroupMessage(message, event.sender.group.id, event.sender.id, quote ? event.msgId() : null)
         }
     }
     serviceHelp(): string {
@@ -205,7 +206,7 @@ export abstract class Service extends ConfiguredBotObject {
             return enabled
         }
     }
-    private handleMsgTextFriend = (event: FriendMessage, service: Service) => {
+    private handleMsgTextFriend = async (event: FriendMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
 
         for (let hash in service.TextHandlerSetFriend) {
@@ -217,7 +218,7 @@ export abstract class Service extends ConfiguredBotObject {
                 try {
                     if (service.TextHandlerSetFriend[hash].visible)
                         this.logger.success(`Message ${event.msgId()} matched /${chalk.yellow(service.TextHandlerSetFriend[hash].trigger.toString())}/`)
-                    service.TextHandlerSetFriend[hash].func.bind(service)(service, event, matchRes)
+                    await service.TextHandlerSetFriend[hash].func.bind(service)(service, event, matchRes)
                 } catch (e) {
                     service.logger.error(`Error in ${service.name} FriendResposer ${service.TextHandlerSetFriend[hash].func.name}: ${e}\n${e.stack}`)
                 } finally {
@@ -226,7 +227,7 @@ export abstract class Service extends ConfiguredBotObject {
             };
         }
     }
-    private handleMsgTextGroup = (event: GroupMessage, service: Service) => {
+    private handleMsgTextGroup = async (event: GroupMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
         for (let hash in service.TextHandlerSetGroup) {
 
@@ -237,7 +238,7 @@ export abstract class Service extends ConfiguredBotObject {
                 try {
                     if (service.TextHandlerSetGroup[hash].visible)
                         this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(service.TextHandlerSetGroup[hash].trigger.toString())}`)
-                    service.TextHandlerSetGroup[hash].func.bind(service)(service, event, matchRes)
+                    await service.TextHandlerSetGroup[hash].func.bind(service)(service, event, matchRes)
                 } catch (e) {
                     service.logger.error(`Error in ${service.name} GroupResposer ${service.TextHandlerSetGroup[hash].func.name}: ${e}\n${e.stack}`)
                 } finally {
@@ -247,7 +248,7 @@ export abstract class Service extends ConfiguredBotObject {
 
         }
     }
-    private handleMsgPartGroup = (event: GroupMessage, service: Service) => {
+    private handleMsgPartGroup = async (event: GroupMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
         for (let hash in service.PartHandlerSetGroup) {
             let target = service.PartHandlerSetGroup[hash].target ?? []
@@ -258,7 +259,7 @@ export abstract class Service extends ConfiguredBotObject {
             try {
                 if (service.PartHandlerSetGroup[partType][hash].visible)
                     this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(partType)}`)
-                service.PartHandlerSetGroup[partType][hash].func.bind(service)(service, event)
+                await service.PartHandlerSetGroup[partType][hash].func.bind(service)(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetGroup[partType][hash].func.name}: ${e}\n${e.stack}`)
             } finally {
@@ -266,7 +267,7 @@ export abstract class Service extends ConfiguredBotObject {
             }
         }
     }
-    private handleMsgPartFriend = (event: FriendMessage, service: Service) => {
+    private handleMsgPartFriend = async (event: FriendMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
 
         for (let hash in service.PartHandlerSetFriend) {
@@ -278,7 +279,7 @@ export abstract class Service extends ConfiguredBotObject {
             try {
                 if (service.PartHandlerSetFriend[partType][hash].visible)
                     this.logger.success(`Message ${event.msgId()} matched ${chalk.yellow(partType)}`)
-                service.PartHandlerSetFriend[partType][hash].func.bind(service)(service, event)
+                await service.PartHandlerSetFriend[partType][hash].func.bind(service)(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} ${partType} Resposer ${service.PartHandlerSetFriend[partType][hash].func.name}: ${e}\n${e.stack}`)
             } finally {
@@ -286,7 +287,7 @@ export abstract class Service extends ConfiguredBotObject {
             }
         }
     }
-    private handleMsgAnyGroup = (event: GroupMessage, service: Service) => {
+    private handleMsgAnyGroup = async (event: GroupMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
         for (let hash in service.AnyHandlerSetGroup) {
             let target = service.AnyHandlerSetGroup[hash].target ?? []
@@ -295,7 +296,7 @@ export abstract class Service extends ConfiguredBotObject {
             try {
                 if (service.AnyHandlerSetGroup[hash].visible)
                     this.logger.success(`Message ${event.msgId()} matched AnyHandler`)
-                service.AnyHandlerSetGroup[hash].func.bind(service)(service, event)
+                await service.AnyHandlerSetGroup[hash].func.bind(service)(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetGroup[hash].func.name}\n${e.stack}`)
             } finally {
@@ -303,7 +304,7 @@ export abstract class Service extends ConfiguredBotObject {
             }
         }
     }
-    private handleMsgAnyFriend = (event: FriendMessage, service: Service) => {
+    private handleMsgAnyFriend = async (event: FriendMessage, service: Service) => {
         if (!service.checkEnabled(event)) return;
         for (let hash in service.AnyHandlerSetFriend) {
             let target = service.AnyHandlerSetFriend[hash].target ?? []
@@ -312,7 +313,7 @@ export abstract class Service extends ConfiguredBotObject {
             try {
                 if (service.AnyHandlerSetFriend[hash].visible)
                     this.logger.success(`Message ${event.msgId()} matched AnyHandler`)
-                service.AnyHandlerSetFriend[hash].func.bind(service)(service, event)
+                await service.AnyHandlerSetFriend[hash].func.bind(service)(service, event)
             } catch (e) {
                 service.logger.error(`Error in ${service.name} AnyHandler ${service.AnyHandlerSetFriend[hash].func.name}: ${e}\n${e.stack}`)
             } finally {

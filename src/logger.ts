@@ -73,8 +73,6 @@ class Logger {
             } else {
                 this.apiCaller.makeApiCall(command, argsList).then((data: any) => {
                     this.console(JSON.stringify(data))
-                }).catch((err: any) => {
-                    this.console(JSON.stringify(err))
                 })
             }
         }
@@ -112,7 +110,7 @@ class Logger {
                 if (this.bot.ServiceSet[sv] === undefined) {
                     this.console(`Service ${sv} not found`)
                 } else {
-                    this.bot.ServiceSet[sv].reload()
+                    this.bot.reloadService(sv)
                 }
             }
         }

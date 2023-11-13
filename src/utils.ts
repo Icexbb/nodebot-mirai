@@ -11,7 +11,36 @@ export function isReg(text: string): boolean {
     return reg.test(text)
 }
 export function Choice<T>(list: T[]): T {
+
     return list[Math.floor(Math.random() * list.length)]
+
+}
+export function Choices<T>(list: T[], limit: number = 1): T[] {
+    let result = []
+    let lsIndex = []
+    if (limit > list.length) limit = list.length
+    else {
+        for (let i = 0; i < limit; i++) {
+            let index = Math.floor(Math.random() * list.length)
+            if (lsIndex.includes(index)) {
+                i--
+                continue
+            } else {
+                lsIndex.push(index)
+            }
+        }
+    }
+    lsIndex.forEach((v) => {
+        result.push(list[v])
+    })
+    return result
+}
+export function Shuffle<T>(list: T[]): T[] {
+    let shuffled = list
+        .map(value => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value)
+    return shuffled
 }
 export function StringLength(str: string): number {
     let len = 0;

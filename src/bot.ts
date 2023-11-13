@@ -50,7 +50,7 @@ export class NodeBot extends ConfiguredBotObject {
             this.logger.error(`Connection | Connection to ${this.url()} has Disconnected`)
             setTimeout(() => {
                 this.logger.info(`Connection | Reconnecting to ${this.url()}`)
-                this.connect()
+                this.connect().then(this.postConnect.bind(this))
             }, 1000);
         }
         this.connection.onmessage = async (event: ws.MessageEvent) => {
@@ -96,17 +96,13 @@ export class NodeBot extends ConfiguredBotObject {
         this.verifyKey = verifyKey
         this.logger = new Logger(this);
         this.logger.info(`Bot | ${qq} connecting to ${host}:${port}`)
-        this.connect().then(() => {
-            this.api = new WsApiCaller(this)
-            this.logger.registerApiCaller(this.api)
-            this.miraiEvent.emit("BotConnected")
-            this.loadService()
-        })
-        this.registerGlobalBot()
+        this.connect().then(this.postConnect.bind(this))
     }
-    registerGlobalBot() {
-        if (global.bot === undefined) global.bot = {} as { [key: string]: NodeBot }
-        if (global.bot[this.qq.toString()] === undefined) global.bot[this.qq.toString()] = this
+    postConnect() {
+        this.api = new WsApiCaller(this)
+        this.logger.registerApiCaller(this.api)
+        this.miraiEvent.emit("BotConnected")
+        this.loadService()
     }
     importService(service: any): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -140,6 +136,7 @@ export class NodeBot extends ConfiguredBotObject {
         this.ServiceSet[name].registerBot(this);
     }
     unloadService(service: string) {
+        if (this.ServiceSet[service] === undefined) throw new Error(`Service ${service} not loaded`)
         this.ServiceSet[service].unload();
         delete this.ServiceSet[service];
     }

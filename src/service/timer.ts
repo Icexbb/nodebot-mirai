@@ -41,11 +41,15 @@ class TimeLimiter extends ConfiguredBotObject {
     }
     add(key: string) {
         this.data[key] ??= 0;
+        this.data[key] += 1;
         this.setConfig(this.data);
     }
-    check(key: string): boolean {
+    check(key: string, time: number = this.defaultTimeLimit): boolean {
         if (this.data[key] === undefined) return true;
-        else return false;
+        else {
+            if (this.data[key] < time) return true
+            else return false
+        };
     }
 
 }

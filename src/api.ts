@@ -1,12 +1,12 @@
 import * as events from "events";
 import * as ws from "ws";
+import chalk from "chalk";
 
 import { MessageChain } from "./message/index.js";
 import { Hash } from "./utils.js";
 import { GroupPermission, GroupInfo } from "./class.js"
 import { Logger } from "./logger.js";
 import { NodeBot } from "./bot.js";
-import chalk from "chalk";
 
 enum ApiStatus {
     Normal = 0,
@@ -229,9 +229,11 @@ export class WsApiCaller implements ApiCallerInterface {
         const defaultApiResolve = (data: ApiResponseTypes) => { }
         const defaultApiRejection = (data: ApiResponseTypes) => { }
 
-        return new Promise((resolve = defaultApiResolve, reject = defaultApiRejection) => {
+        return new Promise((resolve = defaultApiResolve) => {
             this.waitList.push(syncID)
-            this.logger.info(`API | ${chalk.cyan(syncID.substring(0, 6))} | CALL ${chalk.bold.yellowBright(command)}`)
+            let logsync = chalk.cyan(syncID.substring(0, 6))
+            let logCommand = chalk.bold.yellowBright(command)
+            this.logger.info(`API | ${logsync} | CALL ${logCommand}`)
             const data = {
                 syncId: syncID,
                 command: command,
@@ -239,14 +241,14 @@ export class WsApiCaller implements ApiCallerInterface {
                 content: content
             }
             this.eventEmitter.once(syncID, (data: ApiResponse) => {
+                let logRes = chalk.green(data['code']) + (data.msg ? ' message=' + data.msg : "")
                 if (data.code == 0) {
-                    resolve(data);
-                    this.logger.info(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.green(data['code'])} `)
+                    this.logger.info(`API | ${logsync} | GET ${logCommand} result=${logRes}`)
                 }
                 else {
-                    reject(data);
-                    this.logger.error(`API | ${chalk.cyan(syncID.substring(0, 6))} | GET ${chalk.bold.yellowBright(command)} result=${chalk.red(data['code'])}`)
+                    this.logger.error(`API | ${logsync} | GET ${logCommand} result=${logRes}`)
                 }
+                resolve(data);
             })
             this.connection.send(JSON.stringify(data))
         })
@@ -261,7 +263,7 @@ export class WsApiCaller implements ApiCallerInterface {
     //CacheApiCaller
     GetMessageByMessageId(messageId: number, target: number, sessionKey?: string) {
         return this.makeApiCall("messageFromId", { messageId, target, sessionKey }) as Promise<ApiResponse>
-    };//NOTTEST
+    };//PASSED
     //AccountApiCaller
     GetFriendList(sessionKey?: string) {
         return this.makeApiCall("friendList", { sessionKey }) as Promise<ApiResponse>

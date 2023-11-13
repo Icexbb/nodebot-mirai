@@ -36,8 +36,10 @@
   },
   "devDependencies": {
     "@types/node-schedule": "^2.1.2",
+    "@types/tunnel": "^0.0.6",
     "@types/ws": "^8.5.8",
     "axios": "^1.6.1",
+    "tunnel": "^0.0.6",
     "typescript": "^5.2.2"
   }
 }

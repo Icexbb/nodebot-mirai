@@ -37,7 +37,7 @@ class Quote extends MessageSegment {
     }
 
     toLog(): string {
-        return `[>${this.id}]`;
+        return `[Quote:${this.id}]`;
     }
     equals(other: MessageSegment): boolean {
         if (other.type != "Quote") return false;
@@ -150,7 +150,7 @@ class Image extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[IMG:${this.url}]`;
+        return `[Image:${this.url}]`;
     }
     equals(other: MessageSegment): boolean {
         if (other.type != "Image") return false;
@@ -178,7 +178,7 @@ class FlashImage extends MessageSegment implements EncodeAbleMessage {
     }
 
     toLog(): string {
-        return `[FIMG:${this.url}]`;
+        return `[Flash:${this.url}]`;
     }
     equals(other: MessageSegment): boolean {
         if (other.type != "FlashImage") return false;
@@ -325,7 +325,7 @@ class MarketFace extends MessageSegment {
     }
 
     toLog(): string {
-        return `[${this.name}]`;
+        return `[MarketFace:${this.name}]`;
     }
     equals(other: MessageSegment): boolean {
         if (other.type != "MarketFace") return false;
