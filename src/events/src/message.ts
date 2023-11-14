@@ -27,7 +27,9 @@ class FriendMessage extends MessageEvent {
     }
     toLog(): string {
         return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
-
+    }
+    isSU(): boolean {
+        return (this.bot.getConfig()['superuser'] as number[]).includes(this.sender.id)
     }
 }
 
@@ -48,6 +50,9 @@ class GroupMessage extends MessageEvent {
     toLog(): string {
         return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
     }
+    isSU(): boolean {
+        return (this.bot.getConfig()['superuser'] as number[]).includes(this.sender.id)
+    }
 }
 
 class StrangerMessage extends MessageEvent {
@@ -64,6 +69,9 @@ class StrangerMessage extends MessageEvent {
     }
     toLog(): string {
         return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
+    }
+    isSU(): boolean {
+        return (this.bot.getConfig()['superuser'] as number[]).includes(this.sender.id)
     }
 }
 
@@ -84,6 +92,9 @@ class TempMessage extends MessageEvent {
     toLog(): string {
         return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
     }
+    isSU(): boolean {
+        return (this.bot.getConfig()['superuser'] as number[]).includes(this.sender.id)
+    }
 }
 
 class OtherClientMessage extends MessageEvent {
@@ -98,6 +109,9 @@ class OtherClientMessage extends MessageEvent {
     }
     toLog(): string {
         return `<${chalk.cyanBright(this.msgId())}> ${this.senderInfoLog()}: ${this.msgToString()}`
+    }
+    isSU(): boolean {
+        return true
     }
 }
 
@@ -125,6 +139,9 @@ class FriendSyncMessage extends SyncMessageEvent {
     toLog(): string {
         return `[${this.subject.nickname}(${this.subject.id})]${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
     }
+    isSU(): boolean {
+        return false
+    }
 }
 
 class GroupSyncMessage extends SyncMessageEvent {
@@ -141,6 +158,9 @@ class GroupSyncMessage extends SyncMessageEvent {
     }
     toLog(): string {
         return `${this.senderInfoLog()} <${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
+    }
+    isSU(): boolean {
+        return false
     }
 }
 
@@ -161,6 +181,9 @@ class TempSyncMessage extends SyncMessageEvent {
     toLog(): string {
         return `${this.senderInfoLog()} <${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
     }
+    isSU(): boolean {
+        return false
+    }
 }
 
 class StrangerSyncMessage extends SyncMessageEvent {
@@ -177,6 +200,9 @@ class StrangerSyncMessage extends SyncMessageEvent {
     }
     toLog(): string {
         return `${this.senderInfoLog()} <${chalk.cyanBright(this.msgId())}> ${this.msgToString()}`
+    }
+    isSU(): boolean {
+        return false
     }
 }
 

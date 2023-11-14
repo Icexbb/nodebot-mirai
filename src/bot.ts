@@ -85,7 +85,6 @@ export class NodeBot extends ConfiguredBotObject {
                 this.logger.success(`SessionID | ${chalk.bold.green(this.sessionID)} Registered`)
             }
         }
-
     }
 
     constructor(host: string, port: number, qq: number, verifyKey: string) {
@@ -96,7 +95,9 @@ export class NodeBot extends ConfiguredBotObject {
         this.verifyKey = verifyKey
         this.logger = new Logger(this);
         this.logger.info(`Bot | ${qq} connecting to ${host}:${port}`)
-        this.connect().then(this.postConnect.bind(this))
+        this.connect().then(this.postConnect.bind(this)).then(() => {
+            process.title = `NodeBot ${this.getConfig()['name'][0]?.toUpperCase()}${'(' + this.qq + ')'}`
+        })
     }
     postConnect() {
         this.api = new WsApiCaller(this)

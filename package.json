@@ -12,8 +12,7 @@
   },
   "scripts": {
     "compile": "tsc -t es2022",
-    "dev": "cls && npm run compile && node index",
-    "start": "npm run compile && node run"
+    "start": "cls && tsc -t es2022 && node run.js"
   },
   "keywords": [
     "mirai",

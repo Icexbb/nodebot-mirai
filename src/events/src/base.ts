@@ -118,6 +118,7 @@ abstract class MessageEvent extends BaseEvent {
             }
         })
     }
+    abstract isSU(): boolean
 }
 
 abstract class ApplicationEvent extends BaseEvent {

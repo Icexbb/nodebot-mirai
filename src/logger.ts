@@ -174,27 +174,26 @@ class Logger {
         process.stdout.write(msg)
         if (level < this.recordLevel) return;
         let logFile = this.getLogFilePath()
-
         fs.appendFileSync(logFile, (msg.trim() + "\n").replaceAll(this.colorEscape, ""))
     }
     colorEscape = /\x1B[@-_][0-?]*[ -/]*[@-~]/g
     getLogFilePath() {
-        let logFilePath = path.join(process.cwd(), "logs");
-        fs.mkdirSync(logFilePath, { recursive: true })
+
 
         let time = new Date().toLocaleString()
-        let logFileDate = time.replaceAll('/', '-').split(" ")[0]
+        let logFileDate = time.split(" ")[0].split('/')
+        let logFilePath = path.join(process.cwd(), "logs", ...logFileDate);
+        fs.mkdirSync(logFilePath, { recursive: true })
 
         let filename: string;
         if (this.logFileName === undefined) {
-            let logFileNum = fs.readdirSync(logFilePath).filter((file) => file.startsWith(logFileDate)).length
-            filename = `${logFileDate}_${logFileNum}.log`
+            let logFileNum = fs.readdirSync(logFilePath).length
+            filename = `${logFileNum}.log`
+        } else {
+            filename = this.logFileName
+            let logFileNum = fs.readdirSync(logFilePath).length
+            if (logFileNum == 0) filename = '0.json'
         }
-        else {
-            if (this.logFileName.startsWith(logFileDate)) filename = this.logFileName
-            else filename = `${logFileDate}_${0}.log`
-        }
-
         this.logFileName = filename
         let logFile = path.join(logFilePath, filename)
         return logFile

@@ -370,7 +370,7 @@ class MusicShare extends MessageSegment implements EncodeAbleMessage {
 
 class Forward extends MessageSegment {
     display: ForwardMessageDisplay
-    nodeList: ForwardMessageNode
+    nodeList: ForwardMessageNode[]
 
     constructor(segment: object) {
         super(segment);
@@ -379,7 +379,7 @@ class Forward extends MessageSegment {
     }
 
     toLog(): string {
-        return `[Forward:${JSON.stringify(this)}]`;
+        return `[Forward:${JSON.stringify(new Set(this.nodeList.map((node) => node.senderId)))}]`;
     }//TODO
     equals(other: MessageSegment): boolean {
         return false
